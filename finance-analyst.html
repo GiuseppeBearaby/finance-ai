@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finance AI">
+<meta name="theme-color" content="#0f172a">
+<title>Finance AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<style>
+:root {
+  --bg:#0f172a; --surface:#1e293b; --surface2:#273348; --border:#334155;
+  --accent:#6366f1; --accent2:#22d3ee; --green:#10b981; --red:#f43f5e;
+  --yellow:#f59e0b; --text:#f1f5f9; --text2:#94a3b8; --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;font-size:15px;overflow-x:hidden}
+/* LOCK SCREEN */
+#lockScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+#lockScreen h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+#lockScreen p{color:var(--text2);font-size:14px;margin-bottom:40px;text-align:center}
+.pin-dots{display:flex;gap:16px;margin-bottom:32px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);transition:all 0.2s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px}
+.pin-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;font-size:22px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;transition:all 0.15s;-webkit-user-select:none}
+.pin-btn:active{background:var(--surface2);transform:scale(0.95)}
+.pin-error{color:var(--red);font-size:13px;margin-top:12px;min-height:20px;text-align:center}
+/* SETUP SCREEN */
+#setupScreen{position:fixed;inset:0;background:var(--bg);z-index:9998;display:none;overflow-y:auto;padding:32px 24px}
+.setup-step{display:none}.setup-step.active{display:block}
+.setup-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.setup-sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.6}
+.input-group{margin-bottom:16px}
+.input-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.input-field{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none}
+.input-field:focus{border-color:var(--accent)}
+.input-field::placeholder{color:var(--text2)}
+/* HEADER */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center}
+.app-header-left h1{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-header-left p{font-size:11px;color:var(--text2);margin-top:1px}
+.header-btns{display:flex;gap:8px}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:7px 10px;font-size:14px;cursor:pointer;line-height:1}
+/* NAV */
+.nav-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:61px;z-index:99}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{flex:0 0 auto;padding:11px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* PAGES */
+.page{display:none;padding:16px;padding-bottom:50px}.page.active{display:block}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+.stat-value{font-size:21px;font-weight:700}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.stat-value.green{color:var(--green)}.stat-value.red{color:var(--red)}.stat-value.yellow{color:var(--yellow)}.stat-value.accent{color:var(--accent)}
+/* CHART */
+.chart-wrap{position:relative;height:210px;margin:6px 0}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;font-family:inherit}
+.btn-primary{background:var(--accent);color:white}.btn-primary:active{background:#4f46e5}
+.btn-danger{background:rgba(244,63,94,0.12);color:var(--red);border:1px solid rgba(244,63,94,0.25)}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-full{width:100%}
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:12px}
+.upload-zone:active,.upload-zone.drag{border-color:var(--accent);background:rgba(99,102,241,0.07)}
+.upload-zone .icon{font-size:36px;margin-bottom:8px}
+.upload-zone h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+/* TX */
+.tx-item{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)}
+.tx-item:last-child{border-bottom:none}
+.tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.tx-body{flex:1;min-width:0}
+.tx-merchant{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-meta{font-size:11px;color:var(--text2);margin-top:1px}
+.tx-amount{font-size:14px;font-weight:700;flex-shrink:0}
+.tx-amount.debit{color:var(--red)}.tx-amount.credit{color:var(--green)}
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(16,185,129,0.15);color:var(--green)}
+.badge-red{background:rgba(244,63,94,0.15);color:var(--red)}
+.badge-yellow{background:rgba(245,158,11,0.15);color:var(--yellow)}
+.badge-blue{background:rgba(99,102,241,0.15);color:var(--accent)}
+/* PROGRESS */
+.progress-row{margin-bottom:11px}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.progress-bar{height:6px;background:var(--border);border-radius:10px;overflow:hidden}
+.progress-fill{height:100%;border-radius:10px;transition:width 0.6s ease}
+/* ALERTS */
+.alert{border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.alert-yellow{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)}
+.alert-red{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2)}
+.alert-green{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2)}
+.alert-blue{background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)}
+/* SCENARIO */
+.scenario-toggle{display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:14px}
+.scenario-btn{flex:1;padding:8px;text-align:center;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);transition:all 0.2s}
+.scenario-btn.active{background:var(--accent);color:white}
+/* FILE CHIP */
+.file-chip{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:10px;padding:10px 13px;margin-bottom:8px}
+.file-chip-name{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chip-meta{font-size:11px;color:var(--text2)}
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:12px}
+.search-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit}
+.search-bar input::placeholder{color:var(--text2)}
+/* EMPTY */
+.empty{text-align:center;padding:44px 20px}
+.empty-icon{font-size:52px;margin-bottom:12px}
+.empty h3{font-size:17px;font-weight:700;margin-bottom:7px}
+.empty p{font-size:13px;color:var(--text2);line-height:1.5}
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 18px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s ease;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,0.5);pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+/* MODAL / SHEET */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;backdrop-filter:blur(4px)}
+.sheet{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:501;max-height:85vh;overflow-y:auto}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.sheet-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.sheet-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:8px;margin-top:4px}
+.sheet-btn{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:13px 14px;margin-bottom:8px;cursor:pointer;font-family:inherit}
+.sheet-btn:active{opacity:0.7}
+.sheet-btn-icon{font-size:20px;flex-shrink:0}
+.sheet-btn-body{text-align:left;flex:1}
+.sheet-btn-title{font-size:14px;font-weight:600;color:var(--text)}
+.sheet-btn-sub{font-size:12px;color:var(--text2);margin-top:1px}
+/* AI CHAT */
+#aiPage{display:none;flex-direction:column;height:calc(100vh - 120px)}
+#aiPage.active{display:flex}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:10px}
+.chat-msg{max-width:85%;border-radius:14px;padding:11px 14px;font-size:14px;line-height:1.5}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:white;border-bottom-right-radius:4px}
+.chat-msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+.chat-msg.ai.thinking{color:var(--text2);font-style:italic}
+.chat-input-wrap{border-top:1px solid var(--border);padding:12px 16px;background:var(--surface);display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;resize:none;max-height:100px;font-family:inherit;line-height:1.4}
+.chat-input:focus{border-color:var(--accent)}
+.chat-send{background:var(--accent);border:none;color:white;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:16px;flex-shrink:0}
+.chat-send:disabled{opacity:0.4;cursor:not-allowed}
+.quick-questions{display:flex;flex-wrap:wrap;gap:7px;padding:10px 16px;border-top:1px solid var(--border)}
+.quick-q{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text2);white-space:nowrap;font-family:inherit}
+.quick-q:active{background:rgba(99,102,241,0.15);border-color:var(--accent);color:var(--accent)}
+/* ANNUAL TABLE */
+.year-select{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px}
+.year-select::-webkit-scrollbar{display:none}
+.year-pill{flex:0 0 auto;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2);border:1px solid var(--border);transition:all 0.2s}
+.year-pill.active{background:var(--accent);color:white;border-color:var(--accent)}
+.annual-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px}
+.annual-table{border-collapse:collapse;min-width:680px;width:100%;font-size:12px}
+.annual-table thead tr{background:var(--surface2)}
+.annual-table th{padding:9px 11px;text-align:right;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;border-bottom:2px solid var(--border)}
+.annual-table th:first-child{text-align:left;position:sticky;left:0;background:var(--surface2);z-index:2;min-width:86px}
+.annual-table td{padding:8px 11px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.annual-table td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;font-weight:600;font-size:12px}
+.annual-table tr:last-child td{border-bottom:none}
+.annual-table tr.row-total td{background:var(--surface2)!important;font-weight:700;font-size:13px;border-top:2px solid var(--border)}
+.annual-table tr.row-total td:first-child{background:var(--surface2)!important}
+.annual-table tr.row-section td{background:rgba(99,102,241,0.07)!important;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent)}
+.annual-table tr.row-section td:first-child{background:rgba(99,102,241,0.07)!important}
+.annual-table tr.row-cat td:first-child{padding-left:20px;color:var(--text2);font-weight:400}
+.annual-table .cg{color:var(--green)}.annual-table .cr{color:var(--red)}.annual-table .cy{color:var(--yellow)}.annual-table .cd{color:var(--text2)}
+/* REC ITEM */
+.rec-item{display:flex;gap:11px;padding:12px 0;border-bottom:1px solid var(--border)}
+.rec-item:last-child{border-bottom:none}
+.rec-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.rec-body h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.rec-body p{font-size:13px;color:var(--text2);line-height:1.5}
+.rec-impact{font-size:12px;color:var(--green);font-weight:600;margin-top:3px}
+/* ANOMALY */
+.anomaly-item{background:rgba(244,63,94,0.05);border:1px solid rgba(244,63,94,0.15);border-radius:10px;padding:12px;margin-bottom:8px}
+/* PROJ */
+.proj-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.proj-row:last-child{border-bottom:none}
+.proj-row.total{font-weight:700;font-size:15px;padding-top:10px}
+.proj-label{color:var(--text2)}
+/* SETTINGS */
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-label{font-size:14px;font-weight:500}
+.settings-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:26px;cursor:pointer;transition:0.3s}
+.toggle-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s}
+.toggle input:checked+.toggle-slider{background:var(--accent)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px)}
+/* AI REVIEW */
+.review-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.review-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.review-amount{font-size:15px;font-weight:700}
+.review-amount.debit{color:var(--red)}.review-amount.credit{color:var(--green)}
+.review-date{font-size:11px;color:var(--text2)}
+.review-desc{font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.4}
+.review-ai-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.review-note{font-size:12px;color:var(--yellow);margin-top:4px;line-height:1.4}
+.review-actions{display:flex;gap:7px;align-items:center;margin-top:10px}
+.review-cat-select{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--text);font-size:12px;outline:none;font-family:inherit}
+.review-btn{border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--surface2);color:var(--text);flex-shrink:0}
+.review-transfer{background:rgba(99,102,241,0.1);color:var(--accent);border-color:rgba(99,102,241,0.3)}
+@keyframes aiSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- ===== LOCK SCREEN ===== -->
+<div id="lockScreen">
+  <div style="font-size:52px;margin-bottom:12px">🔐</div>
+  <h1>Finance AI</h1>
+  <p id="lockMsg">Inserisci il tuo PIN per accedere</p>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <div class="pin-btn" onclick="pinPress('1')">1</div>
+    <div class="pin-btn" onclick="pinPress('2')">2</div>
+    <div class="pin-btn" onclick="pinPress('3')">3</div>
+    <div class="pin-btn" onclick="pinPress('4')">4</div>
+    <div class="pin-btn" onclick="pinPress('5')">5</div>
+    <div class="pin-btn" onclick="pinPress('6')">6</div>
+    <div class="pin-btn" onclick="pinPress('7')">7</div>
+    <div class="pin-btn" onclick="pinPress('8')">8</div>
+    <div class="pin-btn" onclick="pinPress('9')">9</div>
+    <div class="pin-btn" style="opacity:0;pointer-events:none"></div>
+    <div class="pin-btn" onclick="pinPress('0')">0</div>
+    <div class="pin-btn" onclick="pinDel()">⌫</div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+</div>
+
+<!-- ===== SETUP SCREEN ===== -->
+<div id="setupScreen">
+  <div style="margin-bottom:24px">
+    <div style="font-size:44px;margin-bottom:10px">👋</div>
+    <div class="setup-title">Benvenuto in Finance AI</div>
+    <div class="setup-sub">Prima configurazione — ci vogliono 2 minuti</div>
+  </div>
+  <div id="setup1" class="setup-step active">
+    <div class="card">
+      <div class="card-title">🔐 Crea il tuo PIN (4 cifre)</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Il PIN protegge l'accesso all'app. I tuoi dati finanziari vengono cifrati con esso.</p>
+      <div class="input-group">
+        <div class="input-label">PIN</div>
+        <input type="password" inputmode="numeric" maxlength="4" id="setupPin1" class="input-field" placeholder="4 cifre" pattern="[0-9]*">
+      </div>
+      <div class="input-group">
+        <div class="input-label">Conferma PIN</div>
+        <input type="password" inputmode="numeric" maxlength="4" id="setupPin2" class="input-field" placeholder="Ripeti le 4 cifre" pattern="[0-9]*">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 OpenAI API Key (opzionale)</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Serve per l'assistente AI. Puoi aggiungerla ora o più tardi nelle impostazioni.</p>
+      <div class="input-group">
+        <div class="input-label">API Key</div>
+        <input type="password" id="setupApiKey" class="input-field" placeholder="sk-...">
+      </div>
+      <p style="font-size:12px;color:var(--text2);">🔒 La chiave viene salvata cifrata nel tuo browser.</p>
+    </div>
+    <div id="setupError" style="color:var(--red);font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+    <button class="btn btn-primary btn-full" onclick="setupComplete()">Inizia →</button>
+  </div>
+</div>
+
+<!-- ===== APP HEADER ===== -->
+<div class="app-header" id="appHeader" style="display:none">
+  <div class="app-header-left">
+    <h1>Finance AI</h1>
+    <p id="headerSub">Carica i tuoi estratti conto</p>
+  </div>
+  <div class="header-btns">
+    <button class="icon-btn" onclick="openAIChat()" title="AI Assistant">🤖</button>
+    <button class="icon-btn" onclick="openBackupSheet()" title="Backup">💾</button>
+    <button class="icon-btn" onclick="lockApp()" title="Blocca">🔒</button>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<div class="nav-tabs" id="navTabs" style="display:none">
+  <div class="nav-tab active" data-page="upload">📂 Carica</div>
+  <div class="nav-tab" data-page="overview">📊 Panoramica</div>
+  <div class="nav-tab" data-page="transactions">💳 Movimenti</div>
+  <div class="nav-tab" data-page="recurring">🔄 Fissi</div>
+  <div class="nav-tab" data-page="annual">📅 Annuale</div>
+  <div class="nav-tab" data-page="projection">🎯 Proiezioni</div>
+  <div class="nav-tab" data-page="insights">💡 Consigli</div>
+  <div class="nav-tab" data-page="settings">⚙️ Config</div>
+</div>
+
+<!-- ===== PAGE: UPLOAD ===== -->
+<div class="page active" id="page-upload" style="display:none">
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📄</div>
+    <h3>Carica estratto conto</h3>
+    <p>PDF · CSV · Excel dalla tua banca<br>Tocca per selezionare</p>
+  </div>
+  <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls,.txt,.pdf" style="display:none">
+  <div id="fileList"></div>
+  <div id="uploadInstructions" class="card">
+    <div class="card-title">Formati supportati</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8">
+      <div>✅ <b>PDF</b> — estratti conto da qualsiasi banca (richiede API Key)</div>
+      <div>✅ <b>CSV</b> — Fineco, ING, UniCredit, BPER, Intesa…</div>
+      <div>✅ <b>Excel (.xlsx)</b> — export da home banking</div>
+      <div style="margin-top:8px">🤖 Per i PDF: l'AI legge e interpreta automaticamente il formato della tua banca</div>
+      <div style="margin-top:4px">⚠️ PDF scansionati (foto) non sono supportati — scarica il PDF nativo dall'app della banca</div>
+      <div style="margin-top:6px">🔒 Tutto rimane nel tuo browser. Nessun dato viene memorizzato da OpenAI.</div>
+    </div>
+  </div>
+  <div id="uploadStatus"></div>
+</div>
+
+<!-- ===== PAGE: OVERVIEW ===== -->
+<div class="page" id="page-overview" style="display:none">
+  <div id="overviewContent">
+    <div class="empty"><div class="empty-icon">📊</div><h3>Nessun dato</h3><p>Carica i tuoi estratti conto per vedere la panoramica.</p></div>
+  </div>
+</div>
+
+<!-- ===== PAGE: TRANSACTIONS ===== -->
+<div class="page" id="page-transactions" style="display:none">
+  <div class="search-bar">
+    <span>🔍</span>
+    <input type="text" id="txSearch" placeholder="Cerca transazioni..." oninput="renderTransactions()">
+  </div>
+  <div style="display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
+    <button class="badge badge-blue" style="cursor:pointer;border:none;padding:6px 13px;border-radius:20px;font-size:12px;font-family:inherit" onclick="setTxFilter('all')">Tutti</button>
+    <button class="badge badge-red" style="cursor:pointer;border:none;padding:6px 13px;border-radius:20px;font-size:12px;font-family:inherit" onclick="setTxFilter('debit')">Uscite</button>
+    <button class="badge badge-green" style="cursor:pointer;border:none;padding:6px 13px;border-radius:20px;font-size:12px;font-family:inherit" onclick="setTxFilter('credit')">Entrate</button>
+    <button class="badge badge-yellow" style="cursor:pointer;border:none;padding:6px 13px;border-radius:20px;font-size:12px;font-family:inherit" onclick="setTxFilter('recurring')">Fissi</button>
+  </div>
+  <div id="txContent"><div class="empty"><div class="empty-icon">💳</div><h3>Nessuna transazione</h3><p>Carica i tuoi estratti conto.</p></div></div>
+</div>
+
+<!-- ===== PAGE: RECURRING ===== -->
+<div class="page" id="page-recurring" style="display:none">
+  <div id="recurringContent"><div class="empty"><div class="empty-icon">🔄</div><h3>Nessun fisso rilevato</h3><p>Carica almeno 2 mesi di movimenti.</p></div></div>
+</div>
+
+<!-- ===== PAGE: ANNUAL ===== -->
+<div class="page" id="page-annual" style="display:none">
+  <div id="annualContent"><div class="empty"><div class="empty-icon">📅</div><h3>Nessun dato</h3><p>Carica i tuoi estratti per vedere il riepilogo annuale.</p></div></div>
+</div>
+
+<!-- ===== PAGE: PROJECTION ===== -->
+<div class="page" id="page-projection" style="display:none">
+  <div id="projectionContent"><div class="empty"><div class="empty-icon">🎯</div><h3>Nessuna proiezione</h3><p>Carica i tuoi estratti per generare le proiezioni.</p></div></div>
+</div>
+
+<!-- ===== PAGE: INSIGHTS ===== -->
+<div class="page" id="page-insights" style="display:none">
+  <div id="insightsContent"><div class="empty"><div class="empty-icon">💡</div><h3>Nessun consiglio</h3><p>Carica i tuoi estratti per ricevere consigli.</p></div></div>
+</div>
+
+<!-- ===== PAGE: SETTINGS ===== -->
+<div class="page" id="page-settings" style="display:none">
+  <div id="settingsContent"></div>
+</div>
+
+<!-- ===== AI CHAT PAGE (fullscreen overlay) ===== -->
+<div id="aiOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column;">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:12px">
+    <button onclick="closeAIChat()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1">←</button>
+    <div>
+      <div style="font-size:16px;font-weight:700">🤖 Assistente AI</div>
+      <div style="font-size:11px;color:var(--text2)" id="aiStatus">Pronto</div>
+    </div>
+  </div>
+  <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px"></div>
+  <div style="border-top:1px solid var(--border);padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px" id="quickQuestions"></div>
+  <div style="border-top:1px solid var(--border);padding:12px 14px;background:var(--surface);display:flex;gap:8px;align-items:flex-end">
+    <textarea id="chatInput" class="chat-input" placeholder="Chiedi qualcosa sui tuoi dati…" rows="1" onkeydown="chatKeydown(event)"></textarea>
+    <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()">↑</button>
+  </div>
+</div>
+
+<!-- ===== BACKUP SHEET ===== -->
+<div class="overlay" id="backupOverlay" onclick="closeBackupSheet()"></div>
+<div class="sheet" id="backupSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">💾 Backup & Sicurezza</div>
+  <div id="backupStorageInfo" style="background:var(--surface2);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.9"></div>
+  <div class="sheet-section">Esporta</div>
+  <button class="sheet-btn" onclick="exportJSON()">
+    <span class="sheet-btn-icon">📦</span>
+    <div class="sheet-btn-body"><div class="sheet-btn-title">Esporta JSON</div><div class="sheet-btn-sub">Backup completo — salvalo su GitHub o iCloud</div></div>
+  </button>
+  <button class="sheet-btn" onclick="exportCSV()">
+    <span class="sheet-btn-icon">📊</span>
+    <div class="sheet-btn-body"><div class="sheet-btn-title">Esporta CSV</div><div class="sheet-btn-sub">Tutte le transazioni pulite in CSV</div></div>
+  </button>
+  <div class="sheet-section" style="margin-top:8px">Importa</div>
+  <button class="sheet-btn" onclick="document.getElementById('importInput').click()">
+    <span class="sheet-btn-icon">📂</span>
+    <div class="sheet-btn-body"><div class="sheet-btn-title">Importa backup JSON</div><div class="sheet-btn-sub">Ripristina un backup precedente</div></div>
+  </button>
+  <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(this)">
+  <div class="sheet-section" style="margin-top:8px;color:var(--red)">Zona pericolosa</div>
+  <button class="sheet-btn" onclick="clearAllData()" style="border-color:rgba(244,63,94,0.3)">
+    <span class="sheet-btn-icon">🗑️</span>
+    <div class="sheet-btn-body"><div class="sheet-btn-title" style="color:var(--red)">Cancella tutti i dati</div><div class="sheet-btn-sub">Rimuove tutto e resetta l'app</div></div>
+  </button>
+  <div style="font-size:12px;color:var(--text2);margin-top:14px;padding:11px;background:var(--surface2);border-radius:10px;line-height:1.6">
+    💡 <b>GitHub privato:</b> Esporta JSON → carica su repo privato → la prossima volta importa il file. Istruzioni complete in ⚙️ Config.
+  </div>
+  <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeBackupSheet()">Chiudi</button>
+</div>
+
+<script>
+// ==================== PDF.JS WORKER ====================
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+}
+
+// ==================== CRYPTO HELPERS (AES-GCM via WebCrypto) ====================
+const STORAGE_KEY = 'financeai_v2';
+const SALT_KEY    = 'financeai_salt';
+
+async function deriveKey(pin, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:200000, hash:'SHA-256' },
+    keyMaterial,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function encryptData(pin, data) {
+  let salt = getSalt();
+  if (!salt) { salt = crypto.getRandomValues(new Uint8Array(16)); saveSalt(salt); }
+  const iv  = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pin, salt);
+  const enc = new TextEncoder();
+  const ct  = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)));
+  const buf = new Uint8Array(iv.byteLength + ct.byteLength);
+  buf.set(iv, 0); buf.set(new Uint8Array(ct), iv.byteLength);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decryptData(pin, ciphertext) {
+  const salt = getSalt();
+  if (!salt) throw new Error('No salt');
+  const buf  = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
+  const iv   = buf.slice(0, 12);
+  const ct   = buf.slice(12);
+  const key  = await deriveKey(pin, salt);
+  const dec  = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(dec));
+}
+
+function getSalt() {
+  const s = localStorage.getItem(SALT_KEY);
+  if (!s) return null;
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+function saveSalt(salt) {
+  localStorage.setItem(SALT_KEY, btoa(String.fromCharCode(...salt)));
+}
+
+// ==================== STATE ====================
+const state = {
+  transactions: [], files: [], analysis: null,
+  scenario: 'base', charts: {}, selectedYear: null,
+  annualView: 'table', txFilter: 'all',
+  pin: null,   // runtime only, never persisted
+  apiKey: null // runtime only
+};
+
+// ==================== TOAST ====================
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ==================== PIN / LOCK ====================
+let pinBuffer = '';
+let isSetupMode = false;
+
+function initApp() {
+  const hasData = !!localStorage.getItem(STORAGE_KEY);
+  const hasSalt = !!localStorage.getItem(SALT_KEY);
+  if (!hasSalt && !hasData) {
+    // First run: show setup
+    document.getElementById('setupScreen').style.display = 'block';
+    document.getElementById('lockScreen').style.display = 'none';
+    isSetupMode = true;
+  } else {
+    // Show lock screen
+    document.getElementById('lockScreen').style.display = 'flex';
+  }
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(() => submitPin(), 120);
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+async function submitPin() {
+  const pin = pinBuffer;
+  pinBuffer = '';
+  updatePinDots();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { unlockApp(pin); return; }
+    const data = await decryptData(pin, raw);
+    state.transactions = (data.transactions || []).map(tx => ({ ...tx, date: new Date(tx.date) }));
+    state.files = data.files || [];
+    if (data.apiKey) state.apiKey = data.apiKey;
+    state.pin = pin;
+    unlockApp(pin);
+    if (state.transactions.length > 0) {
+      detectRecurring(); runAnalysis(); renderAll();
+      renderFileList();
+      document.getElementById('uploadInstructions').style.display = 'none';
+      document.getElementById('headerSub').textContent = `${state.transactions.length} movimenti · ${state.analysis?.monthKeys?.length || 0} mesi`;
+      showToast('✅ Dati ripristinati');
+    }
+  } catch(e) {
+    document.getElementById('pinError').textContent = 'PIN errato. Riprova.';
+    // Shake animation
+    const dots = document.getElementById('pinDots');
+    dots.style.animation = 'shake 0.3s ease';
+    setTimeout(() => dots.style.animation = '', 400);
+  }
+}
+
+function unlockApp(pin) {
+  state.pin = pin;
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  document.getElementById('navTabs').style.display = 'flex';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'block');
+  // Make first page active
+  goToPage('upload');
+  renderSettings();
+}
+
+function lockApp() {
+  state.pin = null;
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('lockMsg').textContent = 'Inserisci il tuo PIN per accedere';
+  document.getElementById('appHeader').style.display = 'none';
+  document.getElementById('navTabs').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('lockScreen').style.display = 'flex';
+  closeAIChat();
+}
+
+// ==================== SETUP ====================
+async function setupComplete() {
+  const pin1 = document.getElementById('setupPin1').value.trim();
+  const pin2 = document.getElementById('setupPin2').value.trim();
+  const apiKey = document.getElementById('setupApiKey').value.trim();
+  const err = document.getElementById('setupError');
+  err.textContent = '';
+  if (!/^\d{4}$/.test(pin1)) { err.textContent = 'Il PIN deve essere di 4 cifre numeriche.'; return; }
+  if (pin1 !== pin2) { err.textContent = 'I PIN non coincidono.'; return; }
+  state.pin = pin1;
+  if (apiKey) state.apiKey = apiKey;
+  // Generate salt and save empty state
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  saveSalt(salt);
+  await saveToStorage();
+  document.getElementById('setupScreen').style.display = 'none';
+  unlockApp(pin1);
+  showToast('✅ App configurata con successo');
+}
+
+// ==================== SAVE / LOAD ====================
+async function saveToStorage() {
+  if (!state.pin) return;
+  try {
+    const payload = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      files: state.files,
+      apiKey: state.apiKey || null,
+      transactions: state.transactions.map(tx => ({
+        ...tx,
+        date: tx.date instanceof Date ? tx.date.toISOString() : tx.date
+      }))
+    };
+    const cipher = await encryptData(state.pin, payload);
+    localStorage.setItem(STORAGE_KEY, cipher);
+    const ind = document.getElementById('headerSub');
+    if (ind && state.transactions.length > 0) {
+      // Flash a save indicator briefly
+      const orig = ind.textContent;
+      ind.textContent = '💾 Salvato';
+      setTimeout(() => { if (ind.textContent === '💾 Salvato') ind.textContent = orig; }, 1500);
+    }
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+// ==================== NAV ====================
+function goToPage(name) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.page === name));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
+}
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => goToPage(tab.dataset.page));
+});
+
+// ==================== UPLOAD ====================
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+    if (ext === 'csv' || ext === 'txt') {
+      reader.onload = e => parseCSV(e.target.result, file.name);
+      reader.readAsText(file, 'UTF-8');
+    } else if (['xlsx','xls'].includes(ext)) {
+      reader.onload = e => parseXLSX(e.target.result, file.name);
+      reader.readAsArrayBuffer(file);
+    } else if (ext === 'pdf') {
+      reader.onload = e => parsePDF(e.target.result, file.name);
+      reader.readAsArrayBuffer(file);
+    } else showToast('⚠️ Formato non supportato: ' + ext);
+  });
+}
+function parseCSV(text, filename) {
+  showToast('⏳ Analisi di ' + filename + '…');
+  Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false,
+    complete: r => processRows(r.data, filename) });
+}
+function parseXLSX(buffer, filename) {
+  showToast('⏳ Analisi di ' + filename + '…');
+  try {
+    const wb = XLSX.read(buffer, { type:'array', cellDates:true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    processRows(XLSX.utils.sheet_to_json(ws, { defval:'' }), filename);
+  } catch(e) { showToast('❌ Impossibile leggere il file Excel'); }
+}
+
+// ==================== PDF PARSING ====================
+async function parsePDF(buffer, filename) {
+  if (typeof pdfjsLib === 'undefined') {
+    showToast('❌ PDF.js non caricato — controlla la connessione internet', 4000);
+    return;
+  }
+  if (!state.apiKey) {
+    showToast('⚠️ Serve API Key OpenAI per leggere i PDF. Aggiungila in ⚙️ Config.', 4500);
+    return;
+  }
+  showAIProgress(0, 1, 'Apertura PDF…');
+  try {
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    let fullText = '';
+    for (let i = 1; i <= numPages; i++) {
+      showAIProgress(i - 1, numPages, 'Lettura pagina ' + i + ' di ' + numPages + '…');
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      // Preserve layout: group items by approximate Y position
+      const items = textContent.items;
+      const lines = {};
+      items.forEach(item => {
+        const y = Math.round(item.transform[5] / 5) * 5; // group by ~5px rows
+        if (!lines[y]) lines[y] = [];
+        lines[y].push(item.str);
+      });
+      const pageText = Object.keys(lines).sort((a, b) => b - a)
+        .map(y => lines[y].join(' '))
+        .join('\n');
+      fullText += '\n=== Pagina ' + i + ' ===\n' + pageText;
+    }
+    if (!fullText.trim()) {
+      hideAIProgress();
+      showToast('❌ PDF senza testo (probabilmente scansionato). Esporta il PDF dalla tua banca come testo.', 5000);
+      return;
+    }
+    await extractTransactionsFromPDF(fullText, filename, numPages);
+  } catch (e) {
+    hideAIProgress();
+    showToast('❌ Errore lettura PDF: ' + e.message, 4000);
+    console.error('PDF error:', e);
+  }
+}
+
+async function extractTransactionsFromPDF(fullText, filename, numPages) {
+  // Suddividi in chunk da ~12000 caratteri per rispettare i limiti di token
+  const CHUNK_SIZE = 12000;
+  const chunks = [];
+  for (let i = 0; i < fullText.length; i += CHUNK_SIZE) chunks.push(fullText.slice(i, i + CHUNK_SIZE));
+  showAIProgress(0, chunks.length, 'AI estrae le transazioni dal PDF…');
+  const allExtracted = [];
+  const systemPrompt = 'Sei un esperto di estratti conto bancari italiani ed europei. Analizza il testo estratto da un PDF e restituisci TUTTE le transazioni trovate.\n\nRispondi SOLO con un array JSON valido, nessun testo extra, nessun markdown:\n[{"date":"YYYY-MM-DD","amount":123.45,"direction":"debit","description":"descrizione originale"}]\n\nRegole:\n- direction: "debit" per pagamenti/uscite/addebiti/prelievi, "credit" per accrediti/entrate/versamenti/bonifici in entrata\n- amount: sempre numero positivo (mai negativo)\n- date: formato YYYY-MM-DD. Se l\'anno non è esplicito, deducilo dal contesto\n- description: copia il testo originale della riga di transazione\n- IGNORA: saldi, intestazioni di colonna, totali, informazioni conto, testo non-transazione\n- Se non ci sono transazioni nel testo, restituisci []';
+  for (let ci = 0; ci < chunks.length; ci++) {
+    showAIProgress(ci, chunks.length, 'Estrazione transazioni · chunk ' + (ci + 1) + '/' + chunks.length + '…');
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.apiKey },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: 'Estrai le transazioni da questo testo di estratto conto:\n\n' + chunks[ci] }
+          ],
+          max_tokens: 4000,
+          temperature: 0
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API error ' + res.status); }
+      const data = await res.json();
+      const text = data.choices[0].message.content.trim();
+      let extracted = [];
+      try {
+        const m = text.match(/\[[\s\S]*\]/);
+        extracted = JSON.parse(m ? m[0] : text);
+        if (!Array.isArray(extracted)) extracted = [];
+      } catch (e) { extracted = []; }
+      allExtracted.push(...extracted);
+    } catch (e) {
+      console.warn('PDF chunk ' + ci + ' error:', e);
+    }
+  }
+  hideAIProgress();
+  if (allExtracted.length === 0) {
+    showToast('⚠️ Nessuna transazione estratta. Il PDF potrebbe non essere un estratto conto standard.', 5000);
+    return;
+  }
+  // Converti in rawTx e rimuovi duplicati
+  const rawTxs = [];
+  allExtracted.forEach((tx, idx) => {
+    const date = parseDate(tx.date);
+    if (!date) return;
+    const amount = Math.abs(parseFloat(tx.amount) || 0);
+    if (amount === 0) return;
+    const direction = (tx.direction || 'debit') === 'credit' ? 'credit' : 'debit';
+    rawTxs.push({
+      id: 'pdf_' + Date.now() + '_' + idx,
+      date, dateStr: formatDate(date),
+      description_raw: (tx.description || '').toString().trim().slice(0, 200),
+      amount, currency: 'EUR', direction,
+      recurring_flag: false, recurring_type: '', notes: '', source: filename
+    });
+  });
+  if (rawTxs.length === 0) { showToast('⚠️ Transazioni estratte non valide.', 4000); return; }
+  const existing = new Set(state.transactions.map(t => t.dateStr + '_' + t.amount + '_' + t.description_raw));
+  const toAnalyze = rawTxs.filter(t => !existing.has(t.dateStr + '_' + t.amount + '_' + t.description_raw));
+  if (toAnalyze.length === 0) { showToast('ℹ️ Tutte le transazioni già presenti'); return; }
+  showToast('📄 ' + allExtracted.length + ' transazioni estratte dal PDF. Avvio classificazione…', 2500);
+  // Passa alla pipeline di classificazione AI esistente
+  await aiAnalyzeTransactions(toAnalyze, filename);
+}
+
+// ==================== COLUMN DETECTION ====================
+const COL_MAP = {
+  date:   ['data','date','datum','fecha','data valuta','data operazione','transaction date','booking date','value date','dt','transaction_date','data mov'],
+  desc:   ['descrizione','description','causale','narration','details','merchant','beneficiario','text','memo','note','notes','omschrijving','motivo','descrizione operazione'],
+  amount: ['importo','amount','bedrag','importe','valore','value','sum','total','ammontare','importo operazione'],
+  credit: ['avere','entrata','income','credit','in','versamento','abono'],
+  debit:  ['dare','uscita','debit','expense','out','prelevamento','cargo'],
+  balance:['saldo','balance','saldo finale','saldo contabile']
+};
+function detectCol(headers, type) {
+  const lower = headers.map(h => h.toLowerCase().trim());
+  for (const c of COL_MAP[type]) {
+    const i = lower.indexOf(c); if (i !== -1) return headers[i];
+    const j = lower.findIndex(h => h.includes(c)); if (j !== -1) return headers[j];
+  }
+  return null;
+}
+function parseAmount(str) {
+  if (str === null || str === undefined || str === '') return 0;
+  if (typeof str === 'number') return str;
+  let s = str.toString().replace(/[^\d.,-]/g,'').trim();
+  if (!s) return 0;
+  if (s.includes(',') && s.includes('.')) {
+    s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,'');
+  } else if (s.includes(',')) s = s.replace(',','.');
+  return parseFloat(s) || 0;
+}
+function parseDate(str) {
+  if (!str) return null;
+  if (str instanceof Date) return isNaN(str) ? null : str;
+  let s = str.toString().trim();
+  const fmts = [/^(\d{4})-(\d{2})-(\d{2})/,/^(\d{2})\/(\d{2})\/(\d{4})/,/^(\d{2})-(\d{2})-(\d{4})/,/^(\d{2})\.(\d{2})\.(\d{4})/,/^(\d{1,2})\/(\d{1,2})\/(\d{4})/,/^(\d{4})\/(\d{2})\/(\d{2})/];
+  for (let i = 0; i < fmts.length; i++) {
+    const m = s.match(fmts[i]);
+    if (m) {
+      const d = (i === 0 || i === 5) ? new Date(+m[1],+m[2]-1,+m[3]) : new Date(+m[3],+m[2]-1,+m[1]);
+      if (!isNaN(d)) return d;
+    }
+  }
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+function formatDate(d) { return d ? d.toISOString().split('T')[0] : ''; }
+function formatMoney(n, cur='EUR') {
+  const sym = {EUR:'€',USD:'$',GBP:'£'}[cur]||'€';
+  return sym + Math.abs(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function guessDirection(desc) {
+  const d = desc.toLowerCase();
+  const kw = ['stipendio','salary','salario','accredito','versamento','entrata','rimborso','rendita','pensione','cashback','sepa credit','pagamento ricevuto','bonifico in'];
+  return kw.some(k => d.includes(k)) ? 'credit' : 'debit';
+}
+function detectCurrency(row) {
+  const v = Object.values(row).join(' ');
+  if (v.includes('EUR')||v.includes('€')) return 'EUR';
+  if (v.includes('USD')||v.includes('$')) return 'USD';
+  if (v.includes('GBP')||v.includes('£')) return 'GBP';
+  return 'EUR';
+}
+
+// ==================== CATEGORIES ====================
+const CATEGORIES = [
+  {cat:'Entrate',sub:'Stipendio',dir:'credit',kw:['stipendio','salary','salario','accredito stipendio','payroll']},
+  {cat:'Entrate',sub:'Bonifico',dir:'credit',kw:['bonifico','wire transfer','giro','sepa credit']},
+  {cat:'Entrate',sub:'Rimborso',dir:'credit',kw:['rimborso','refund','restituzione','cashback']},
+  {cat:'Casa',sub:'Affitto',dir:'debit',kw:['affitto','rent','locazione']},
+  {cat:'Casa',sub:'Mutuo',dir:'debit',kw:['mutuo','mortgage','rate mutuo']},
+  {cat:'Casa',sub:'Condominio',dir:'debit',kw:['condominio','spese condominiali']},
+  {cat:'Utenze',sub:'Luce',dir:'debit',kw:['enel','a2a','edison','sorgenia','elettricità','electricity','luce']},
+  {cat:'Utenze',sub:'Gas',dir:'debit',kw:['gas','metano','italgas','eni gas']},
+  {cat:'Utenze',sub:'Acqua',dir:'debit',kw:['acqua','water','hera','acquedotto']},
+  {cat:'Telefonia',sub:'Cellulare',dir:'debit',kw:['tim','wind','tre','vodafone','iliad','fastweb','telecom','telefono','mobile']},
+  {cat:'Alimentari',sub:'Supermercato',dir:'debit',kw:['esselunga','conad','coop','carrefour','lidl','aldi','eurospin','supermercato','pam','bennet','iper','grocery','spesa']},
+  {cat:'Alimentari',sub:'Ristoranti',dir:'debit',kw:['restaurant','ristorante','trattoria','pizzeria','sushi','bistro','osteria','taverna']},
+  {cat:'Alimentari',sub:'Delivery',dir:'debit',kw:['just eat','deliveroo','glovo','uber eat','foodpanda']},
+  {cat:'Alimentari',sub:'Bar/Caffè',dir:'debit',kw:['caffe','coffee','starbucks','lavazza','bar ']},
+  {cat:'Trasporti',sub:'Carburante',dir:'debit',kw:['agip','q8','esso','shell','total','tamoil','benzina','fuel','carburante']},
+  {cat:'Trasporti',sub:'Mezzi pubblici',dir:'debit',kw:['atm','atac','trenitalia','italo','frecciarossa','bus','metro','tram','trenord','abbonamento trasporti']},
+  {cat:'Trasporti',sub:'Taxi/Ride',dir:'debit',kw:['uber','cabify','taxi','mytaxi','free now','bolt']},
+  {cat:'Trasporti',sub:'Auto',dir:'debit',kw:['officina','revisione','bollo','assicurazione auto','rca','rc auto']},
+  {cat:'Abbonamenti',sub:'Streaming',dir:'debit',kw:['netflix','spotify','amazon prime','disney','hbo','paramount','apple tv','dazn','sky']},
+  {cat:'Abbonamenti',sub:'Software',dir:'debit',kw:['adobe','microsoft','google','dropbox','icloud','antivirus']},
+  {cat:'Salute',sub:'Farmacia',dir:'debit',kw:['farmacia','pharmacy','parafarmacia']},
+  {cat:'Salute',sub:'Medico/Palestra',dir:'debit',kw:['medico','dottore','dentista','clinica','ospedale','gym','palestra','fitness']},
+  {cat:'Shopping',sub:'Abbigliamento',dir:'debit',kw:['zara','h&m','mango','uniqlo','primark','calzedonia','intimissimi']},
+  {cat:'Shopping',sub:'Elettronica',dir:'debit',kw:['amazon','apple','mediaworld','euronics','unieuro','fnac']},
+  {cat:'Shopping',sub:'Online',dir:'debit',kw:['paypal','ebay','zalando','shein','aliexpress','asos']},
+  {cat:'Finanza',sub:'Commissioni',dir:'debit',kw:['commissione','canone','spese bancarie','bank fee','bollo']},
+  {cat:'Finanza',sub:'Rata/Prestito',dir:'debit',kw:['rata','prestito','finanziamento','loan','leasing']},
+  {cat:'Finanza',sub:'Assicurazione',dir:'debit',kw:['assicurazione','insurance','polizza','allianz','generali']},
+  {cat:'Viaggi',sub:'Voli',dir:'debit',kw:['ryanair','easyjet','alitalia','ita','wizz','lufthansa','flight','volo']},
+  {cat:'Viaggi',sub:'Hotel',dir:'debit',kw:['hotel','booking','airbnb','hostel','b&b','albergo']},
+  {cat:'Contante',sub:'ATM',dir:'debit',kw:['atm','bancomat','prelievo','cash','sportello']},
+  {cat:'Trasferimento',sub:'Bonifico uscita',dir:'debit',kw:['bonifico','giro conto','transfer','sepa']},
+];
+function categorize(desc, dir) {
+  const d = desc.toLowerCase();
+  for (const r of CATEGORIES) {
+    if (r.dir !== dir) continue;
+    if (r.kw.some(k => d.includes(k))) return {cat:r.cat, sub:r.sub, confidence:'high'};
+  }
+  return dir === 'credit' ? {cat:'Entrate',sub:'Altro',confidence:'low'} : {cat:'Altro',sub:'Non categorizzato',confidence:'low'};
+}
+function normalizeMerchant(desc) {
+  if (!desc) return 'Sconosciuto';
+  let s = desc.toString()
+    .replace(/\d{2}\/\d{2}\/\d{4}/g,'').replace(/\d{4}-\d{2}-\d{2}/g,'')
+    .replace(/\b\d{8,}\b/g,'').replace(/CARTA\s+\d+/gi,'').replace(/POS\s+\d+/gi,'')
+    .replace(/\s+/g,' ').trim();
+  return s.split(' ').slice(0,4).map(w => w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+}
+function getCatIcon(cat) {
+  const m = {Casa:'🏠',Utenze:'💡',Alimentari:'🍽️',Telefonia:'📱',Trasporti:'🚗',Abbonamenti:'📺',Salute:'🏥',Shopping:'🛍️',Finanza:'🏦',Viaggi:'✈️',Contante:'💵',Entrate:'💰',Trasferimento:'↔️','Trasferimento Interno':'🔄',Altro:'📦'};
+  return m[cat] || '📦';
+}
+
+// ==================== PROCESS ROWS (estrazione raw → pipeline AI) ====================
+function processRows(rows, filename) {
+  if (!rows || rows.length === 0) { showToast('⚠️ Nessun dato in ' + filename); return; }
+  const headers = Object.keys(rows[0]);
+  const dateCol = detectCol(headers,'date'), descCol = detectCol(headers,'desc');
+  const amtCol = detectCol(headers,'amount'), creditCol = detectCol(headers,'credit'), debitCol = detectCol(headers,'debit');
+  if (!dateCol && !descCol) { showToast('⚠️ Colonne non riconosciute in ' + filename); return; }
+  const rawTxs = [];
+  rows.forEach((row, idx) => {
+    const date = parseDate(row[dateCol]);
+    if (!date) return;
+    const desc = row[descCol] || row[headers[1]] || '';
+    let amount = 0, direction = 'debit';
+    if (amtCol) {
+      amount = parseAmount(row[amtCol]);
+      if (amount < 0) { direction = 'debit'; amount = Math.abs(amount); }
+      else { direction = guessDirection(desc); amount = Math.abs(amount); }
+    } else if (creditCol && debitCol) {
+      const c = parseAmount(row[creditCol]), d = parseAmount(row[debitCol]);
+      if (c > 0 && d === 0) { amount = c; direction = 'credit'; }
+      else if (d > 0) { amount = d; direction = 'debit'; }
+      else if (c > 0) { amount = c; direction = 'credit'; }
+    } else if (creditCol) {
+      amount = parseAmount(row[creditCol]);
+      direction = amount >= 0 ? 'credit' : 'debit'; amount = Math.abs(amount);
+    }
+    if (amount === 0) return;
+    rawTxs.push({
+      id: 'tx_' + Date.now() + '_' + idx, date, dateStr: formatDate(date),
+      description_raw: desc, amount, currency: detectCurrency(row), direction,
+      recurring_flag: false, recurring_type: '', notes: '', source: filename
+    });
+  });
+  if (rawTxs.length === 0) { showToast('⚠️ Nessuna transazione valida in ' + filename); return; }
+  // Dedup prima dell'analisi AI
+  const existing = new Set(state.transactions.map(t => t.dateStr + '_' + t.amount + '_' + t.description_raw));
+  const toAnalyze = rawTxs.filter(t => !existing.has(t.dateStr + '_' + t.amount + '_' + t.description_raw));
+  if (toAnalyze.length === 0) { showToast('ℹ️ Tutte le transazioni già presenti'); return; }
+  if (state.apiKey) {
+    aiAnalyzeTransactions(toAnalyze, filename);
+  } else {
+    // Fallback rule-based senza API Key
+    toAnalyze.forEach(tx => {
+      const cat = categorize(tx.description_raw, tx.direction);
+      tx.merchant_normalized = normalizeMerchant(tx.description_raw);
+      tx.category = cat.cat; tx.subcategory = cat.sub; tx.confidence = cat.confidence;
+    });
+    state.transactions.push(...toAnalyze);
+    state.transactions.sort((a, b) => b.date - a.date);
+    if (!state.files.find(f => f.name === filename)) state.files.push({ name: filename, count: toAnalyze.length });
+    detectRecurring(); runAnalysis(); renderAll();
+    saveToStorage(); renderFileList();
+    document.getElementById('uploadInstructions').style.display = 'none';
+    showToast('✅ ' + toAnalyze.length + ' movimenti caricati — aggiungi API Key per analisi AI!', 3500);
+  }
+}
+
+// ==================== AI ANALYSIS PIPELINE ====================
+let reviewState = { rawTxs: [], aiResults: [], filename: '', overrides: {} };
+
+async function aiAnalyzeTransactions(rawTxs, filename) {
+  showAIProgress(0, rawTxs.length, 'Avvio analisi…');
+  const BATCH = 50;
+  const batches = [];
+  for (let i = 0; i < rawTxs.length; i += BATCH) batches.push(rawTxs.slice(i, i + BATCH));
+  const allResults = [];
+  try {
+    for (let bi = 0; bi < batches.length; bi++) {
+      const batch = batches[bi];
+      showAIProgress(bi * BATCH, rawTxs.length, 'Batch ' + (bi + 1) + '/' + batches.length + ' · ' + batch.length + ' transazioni…');
+      const { system, user } = buildAIClassificationPrompt(batch);
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.apiKey },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: 3000, temperature: 0.1 })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API error ' + res.status); }
+      const data = await res.json();
+      const text = data.choices[0].message.content.trim();
+      let batchResults;
+      try {
+        const m = text.match(/\[[\s\S]*\]/);
+        batchResults = JSON.parse(m ? m[0] : text);
+      } catch (e) {
+        batchResults = batch.map(tx => ({ id: tx.id, merchant_clean: normalizeMerchant(tx.description_raw), category: tx.direction === 'credit' ? 'Entrate' : 'Altro', subcategory: 'Non categorizzato', type: tx.direction === 'credit' ? 'income' : 'expense', confidence: 'low', note: 'Classificazione AI non disponibile' }));
+      }
+      allResults.push(...batchResults);
+    }
+    hideAIProgress();
+    showAIReview(rawTxs, allResults, filename);
+  } catch (e) {
+    hideAIProgress();
+    showToast('❌ Errore AI: ' + e.message, 4000);
+    // Fallback rule-based in caso di errore
+    rawTxs.forEach(tx => {
+      const cat = categorize(tx.description_raw, tx.direction);
+      tx.merchant_normalized = normalizeMerchant(tx.description_raw);
+      tx.category = cat.cat; tx.subcategory = cat.sub; tx.confidence = 'low';
+    });
+    finalizeTransactions(rawTxs, null, filename, {});
+  }
+}
+
+function buildAIClassificationPrompt(batch) {
+  const txList = batch.map(tx =>
+    '{"id":"' + tx.id + '","date":"' + tx.dateStr + '","amount":' + tx.amount + ',"dir":"' + tx.direction + '","desc":"' + tx.description_raw.replace(/"/g, "'").replace(/\n/g, ' ').slice(0, 120) + '"}'
+  ).join(',\n');
+  const system = 'Sei un esperto di finanze personali italiane. Classifica transazioni bancarie.\n\nCATEGORIE DISPONIBILI: Entrate, Casa, Utenze, Telefonia, Alimentari, Trasporti, Abbonamenti, Salute, Shopping, Finanza, Viaggi, Contante, Trasferimento Interno, Altro\n\nTRASFERIMENTO INTERNO: spostamenti tra conti propri (es. conto corrente → conto risparmio). Indicatori: importi tondi (1000, 2000, 5000...), descrizioni con "giro conto", "risparmio", "saving", "tra conti", IBAN proprio, bonifico a se stesso. NON è un trasferimento verso terzi o negozi.\n\nPer ogni transazione restituisci:\n- merchant_clean: nome pulito del commerciante (rimuovi date, codici carta, numeri lunghi)\n- category: una delle categorie sopra\n- subcategory: sottocategoria più specifica\n- type: "income" (entrata reale), "expense" (spesa reale), "transfer" (tra propri conti), "ambiguous" (dubbio)\n- confidence: "high" (sicuro), "medium" (abbastanza sicuro), "low" (dubbio)\n- note: spiegazione breve SOLO se confidence è low o medium, o type è ambiguous\n\nRispondi SOLO con un array JSON valido. Nessun testo extra, nessun markdown, nessun blocco di codice.';
+  const user = 'Classifica queste transazioni:\n[' + txList + ']';
+  return { system, user };
+}
+
+function showAIProgress(done, total, msg) {
+  let el = document.getElementById('aiProgressOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'aiProgressOverlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.96);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center';
+    document.body.appendChild(el);
+  }
+  const pct = total > 0 ? Math.max(5, Math.round((done / total) * 100)) : 5;
+  el.innerHTML = '<div style="font-size:52px;animation:aiSpin 1.5s linear infinite">🤖</div>' +
+    '<div style="font-size:18px;font-weight:700;color:#f1f5f9">Analisi AI in corso…</div>' +
+    '<div style="font-size:13px;color:#94a3b8;max-width:280px">' + msg + '</div>' +
+    '<div style="width:100%;max-width:300px;height:7px;background:#334155;border-radius:10px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:#6366f1;border-radius:10px;transition:width 0.5s ease"></div></div>' +
+    '<div style="font-size:12px;color:#94a3b8">' + done + ' / ' + total + ' transazioni</div>' +
+    '<div style="font-size:11px;color:#64748b;max-width:260px;line-height:1.5">🔒 I dati vengono inviati a OpenAI solo per la classificazione e non vengono memorizzati.</div>';
+}
+function hideAIProgress() { const el = document.getElementById('aiProgressOverlay'); if (el) el.remove(); }
+
+// ==================== AI REVIEW SCREEN ====================
+function showAIReview(rawTxs, aiResults, filename) {
+  reviewState = { rawTxs, aiResults, filename, overrides: {} };
+  const resultMap = {};
+  (aiResults || []).forEach(r => { if (r && r.id) resultMap[r.id] = r; });
+  const needsReview = rawTxs.filter(tx => {
+    const r = resultMap[tx.id];
+    if (!r) return true;
+    return r.confidence !== 'high' || r.type === 'transfer' || r.type === 'ambiguous';
+  });
+  const autoCount = rawTxs.length - needsReview.length;
+  const CATS = ['Entrate', 'Casa', 'Utenze', 'Telefonia', 'Alimentari', 'Trasporti', 'Abbonamenti', 'Salute', 'Shopping', 'Finanza', 'Viaggi', 'Contante', 'Trasferimento Interno', 'Altro'];
+  const typeMap = { income: '💰 Entrata', expense: '💸 Spesa', transfer: '🔄 Trasferimento', ambiguous: '❓ Dubbio' };
+  const reviewHTML = needsReview.map(tx => {
+    const r = resultMap[tx.id] || {};
+    const confCol = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--yellow)' : 'var(--red)';
+    const typeLabel = typeMap[r.type] || r.type || '?';
+    const suggestedCat = r.type === 'transfer' ? 'Trasferimento Interno' : (r.category || 'Altro');
+    const opts = CATS.map(c => '<option value="' + c + '"' + (c === suggestedCat ? ' selected' : '') + '>' + getCatIcon(c) + ' ' + c + '</option>').join('');
+    return '<div class="review-item" id="rev_' + tx.id + '">' +
+      '<div class="review-row-top">' +
+        '<span class="review-amount ' + tx.direction + '">' + (tx.direction === 'debit' ? '-' : '+') + formatMoney(tx.amount, tx.currency) + '</span>' +
+        '<span class="review-date">' + tx.dateStr + '</span>' +
+      '</div>' +
+      '<div class="review-desc">' + tx.description_raw.slice(0, 100) + '</div>' +
+      '<div class="review-ai-row">' +
+        '<span style="font-size:13px;font-weight:600">' + (r.merchant_clean || normalizeMerchant(tx.description_raw)) + '</span>' +
+        '<span class="badge badge-blue">' + typeLabel + '</span>' +
+        '<span style="font-size:11px;font-weight:700;color:' + confCol + '">' + (r.confidence || 'low').toUpperCase() + '</span>' +
+      '</div>' +
+      (r.note ? '<div class="review-note">💬 ' + r.note + '</div>' : '') +
+      '<div class="review-actions">' +
+        '<select class="review-cat-select" onchange="reviewOverride(\'' + tx.id + '\',\'cat\',this.value)">' + opts + '</select>' +
+        '<button class="review-btn review-transfer" onclick="reviewOverride(\'' + tx.id + '\',\'transfer\')" title="Segna come trasferimento interno">🔄</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  const overlay = document.createElement('div');
+  overlay.id = 'aiReviewOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:400;display:flex;flex-direction:column';
+  overlay.innerHTML =
+    '<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;flex-shrink:0">' +
+      '<div style="font-size:16px;font-weight:700;margin-bottom:3px">🤖 Revisione AI</div>' +
+      '<div style="font-size:12px;color:var(--text2)">' + rawTxs.length + ' transazioni · <span style="color:var(--green)">' + autoCount + ' auto-approvate ✓</span> · <span style="color:var(--yellow)">' + needsReview.length + ' da verificare</span></div>' +
+    '</div>' +
+    (needsReview.length > 0
+      ? '<div style="background:rgba(245,158,11,0.08);border-bottom:1px solid rgba(245,158,11,0.2);padding:9px 16px;font-size:12px;color:var(--yellow);flex-shrink:0">⚡ Controlla le transazioni segnalate. Correggi la categoria se necessario, poi conferma.</div>' +
+        '<div style="flex:1;overflow-y:auto;padding:12px 16px">' + reviewHTML + '</div>'
+      : '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px"><div style="font-size:52px">🎉</div><div style="font-size:17px;font-weight:700">Tutto classificato con alta confidenza!</div><div style="font-size:13px;color:var(--text2)">' + rawTxs.length + ' transazioni pronte.</div></div>') +
+    '<div style="border-top:2px solid var(--border);padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;flex-shrink:0">' +
+      '<button class="btn btn-primary btn-full" onclick="confirmAIReview()">✅ Conferma e genera il report →</button>' +
+      '<button class="btn btn-ghost btn-full" style="font-size:13px" onclick="skipAIReview()">Accetta tutto e vai al report</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function reviewOverride(id, action, value) {
+  if (!reviewState.overrides[id]) reviewState.overrides[id] = {};
+  if (action === 'transfer') {
+    reviewState.overrides[id].category = 'Trasferimento Interno';
+    const item = document.getElementById('rev_' + id);
+    if (item) { const sel = item.querySelector('.review-cat-select'); if (sel) sel.value = 'Trasferimento Interno'; }
+  } else {
+    reviewState.overrides[id].category = value;
+  }
+}
+function confirmAIReview() { finalizeTransactions(reviewState.rawTxs, reviewState.aiResults, reviewState.filename, reviewState.overrides); closeAIReview(); }
+function skipAIReview() { finalizeTransactions(reviewState.rawTxs, reviewState.aiResults, reviewState.filename, {}); closeAIReview(); }
+function closeAIReview() { const el = document.getElementById('aiReviewOverlay'); if (el) el.remove(); }
+
+// ==================== FINALIZZA TRANSAZIONI (dopo revisione AI) ====================
+function finalizeTransactions(rawTxs, aiResults, filename, overrides) {
+  const resultMap = {};
+  (aiResults || []).forEach(r => { if (r && r.id) resultMap[r.id] = r; });
+  const finalTxs = rawTxs.map(tx => {
+    const r = resultMap[tx.id] || null;
+    const ov = overrides[tx.id] || null;
+    let merchant_normalized = (r && r.merchant_clean) ? r.merchant_clean : normalizeMerchant(tx.description_raw);
+    let category, subcategory, confidence;
+    if (ov && ov.category) {
+      // Override utente esplicito
+      category = ov.category;
+      subcategory = ov.category === 'Trasferimento Interno' ? 'Giro conto' : (r ? r.subcategory || category : category);
+      confidence = 'high';
+    } else if (r) {
+      // Risultato AI
+      if (r.type === 'transfer') {
+        category = 'Trasferimento Interno';
+        subcategory = 'Giro conto';
+      } else {
+        category = r.category || (tx.direction === 'credit' ? 'Entrate' : 'Altro');
+        subcategory = r.subcategory || category;
+      }
+      confidence = r.confidence || 'medium';
+    } else {
+      // Fallback rule-based
+      const cat = categorize(tx.description_raw, tx.direction);
+      category = cat.cat; subcategory = cat.sub; confidence = cat.confidence || 'low';
+    }
+    return { ...tx, merchant_normalized, category, subcategory, confidence };
+  });
+  state.transactions.push(...finalTxs);
+  state.transactions.sort((a, b) => b.date - a.date);
+  if (!state.files.find(f => f.name === filename)) state.files.push({ name: filename, count: finalTxs.length });
+  detectRecurring(); runAnalysis(); renderAll();
+  saveToStorage(); renderFileList();
+  document.getElementById('uploadInstructions').style.display = 'none';
+  showToast('✅ ' + finalTxs.length + ' movimenti caricati con analisi AI');
+  goToPage('overview');
+}
+
+// ==================== RECURRING ====================
+function detectRecurring() {
+  const byKey = {};
+  state.transactions.forEach(tx => {
+    if (tx.direction === 'debit' && tx.category !== 'Trasferimento' && tx.category !== 'Trasferimento Interno') {
+      const k = tx.category+'_'+tx.merchant_normalized.toLowerCase().slice(0,20);
+      if (!byKey[k]) byKey[k] = [];
+      byKey[k].push(tx);
+    }
+  });
+  Object.values(byKey).forEach(grp => {
+    const months = new Set(grp.map(t => t.date.getFullYear()+'-'+t.date.getMonth()));
+    if (months.size >= 2) {
+      const amts = grp.map(t => t.amount);
+      const avg = amts.reduce((a,b)=>a+b,0)/amts.length;
+      const variance = (Math.max(...amts)-Math.min(...amts))/avg;
+      const type = variance < 0.05 ? 'fisso' : variance < 0.25 ? 'semi-fisso' : 'variabile';
+      grp.forEach(tx => { tx.recurring_flag = true; tx.recurring_type = type; });
+    }
+  });
+  // Income recurring
+  const byInc = {};
+  state.transactions.filter(t=>t.direction==='credit').forEach(tx => {
+    const k = tx.merchant_normalized.toLowerCase().slice(0,15);
+    if (!byInc[k]) byInc[k]=[];
+    byInc[k].push(tx);
+  });
+  Object.values(byInc).forEach(grp => {
+    const months = new Set(grp.map(t=>t.date.getFullYear()+'-'+t.date.getMonth()));
+    if (months.size>=2) grp.forEach(tx=>{ tx.recurring_flag=true; tx.recurring_type='entrata-fissa'; });
+  });
+}
+
+// ==================== ANALYSIS ====================
+function runAnalysis() {
+  const txs = state.transactions;
+  if (!txs.length) return;
+  const months = {};
+  txs.forEach(tx => {
+    const mk = tx.date.getFullYear()+'-'+String(tx.date.getMonth()+1).padStart(2,'0');
+    if (!months[mk]) months[mk] = {income:0,expenses:0,categories:{},txs:[]};
+    months[mk].txs.push(tx);
+    if (tx.direction==='credit' && tx.category!=='Trasferimento Interno') months[mk].income += tx.amount;
+    else if (tx.direction==='debit' && tx.category!=='Trasferimento' && tx.category!=='Trasferimento Interno') {
+      months[mk].expenses += tx.amount;
+      months[mk].categories[tx.category] = (months[mk].categories[tx.category]||0) + tx.amount;
+    }
+  });
+  const monthKeys = Object.keys(months).sort();
+  const recent = monthKeys.slice(-6);
+  const avgIncome   = recent.reduce((s,k)=>s+months[k].income,0)/recent.length;
+  const avgExpenses = recent.reduce((s,k)=>s+months[k].expenses,0)/recent.length;
+  const avgSavings  = avgIncome - avgExpenses;
+  const savingsRate = avgIncome>0 ? (avgSavings/avgIncome)*100 : 0;
+  const catTotals = {};
+  txs.filter(t=>t.direction==='debit'&&t.category!=='Trasferimento'&&t.category!=='Trasferimento Interno').forEach(t=>{
+    catTotals[t.category]=(catTotals[t.category]||0)+t.amount;
+  });
+  const mc = recent.length||1;
+  const catMonthly = {};
+  Object.entries(catTotals).forEach(([k,v])=>catMonthly[k]=v/mc);
+  const merchantTotals = {};
+  txs.filter(t=>t.direction==='debit'&&t.category!=='Trasferimento Interno'&&t.category!=='Trasferimento').forEach(t=>{
+    merchantTotals[t.merchant_normalized]=(merchantTotals[t.merchant_normalized]||0)+t.amount;
+  });
+  // Recurring items summary
+  const recurringItems = [];
+  const seen = new Set();
+  txs.filter(t=>t.recurring_flag).forEach(tx=>{
+    const k = tx.category+'_'+tx.merchant_normalized.slice(0,20);
+    if (seen.has(k)) return; seen.add(k);
+    const grp = txs.filter(t=>t.recurring_flag&&t.category===tx.category&&t.merchant_normalized.slice(0,20)===tx.merchant_normalized.slice(0,20));
+    const amts = grp.map(t=>t.amount);
+    const avg = amts.reduce((a,b)=>a+b,0)/amts.length;
+    recurringItems.push({merchant:tx.merchant_normalized,category:tx.category,direction:tx.direction,avgAmount:avg,type:tx.recurring_type,occurrences:new Set(grp.map(t=>t.date.getFullYear()+'-'+t.date.getMonth())).size});
+  });
+  // Anomalies
+  const anomalies = [];
+  const lastMk = monthKeys[monthKeys.length-1];
+  if (lastMk) {
+    Object.entries(catMonthly).forEach(([cat,avg])=>{
+      const lastCat = months[lastMk]?.categories?.[cat]||0;
+      if (lastCat/avg>1.8 && avg>50) anomalies.push({cat,amount:lastCat,avg,ratio:lastCat/avg,month:lastMk});
+    });
+  }
+  state.analysis = {months,monthKeys,avgIncome,avgExpenses,avgSavings,savingsRate,catMonthly,merchantTotals,recurringItems,anomalies,txCount:txs.length};
+  document.getElementById('headerSub').textContent = `${txs.length} movimenti · ${monthKeys.length} mesi`;
+}
+// ==================== RENDER ALL ====================
+function renderAll() {
+  renderOverview(); renderTransactions(); renderRecurring();
+  renderProjection(); renderInsights(); renderAnnual(); renderSettings();
+}
+
+// ==================== OVERVIEW ====================
+function renderOverview() {
+  if (!state.analysis) return;
+  const a = state.analysis, cur = state.transactions[0]?.currency||'EUR';
+  document.getElementById('overviewContent').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Entrate medie/mese</div><div class="stat-value green">${formatMoney(a.avgIncome,cur)}</div><div class="stat-sub">ultimi ${Math.min(a.monthKeys.length,6)} mesi</div></div>
+      <div class="stat-card"><div class="stat-label">Spese medie/mese</div><div class="stat-value red">${formatMoney(a.avgExpenses,cur)}</div><div class="stat-sub">esclusi trasferimenti</div></div>
+      <div class="stat-card"><div class="stat-label">Risparmio medio/mese</div><div class="stat-value ${a.avgSavings>=0?'green':'red'}">${formatMoney(a.avgSavings,cur)}</div><div class="stat-sub">${a.avgSavings<0?'⚠️ Deficit':'✅ Surplus'}</div></div>
+      <div class="stat-card"><div class="stat-label">Tasso risparmio</div><div class="stat-value ${a.savingsRate>=20?'green':a.savingsRate>=10?'yellow':'red'}">${a.savingsRate.toFixed(1)}%</div><div class="stat-sub">${a.savingsRate>=20?'🌟 Ottimo':a.savingsRate>=10?'👍 Buono':'⚠️ Basso'}</div></div>
+    </div>
+    <div class="card"><div class="card-title">Entrate vs Uscite per mese</div><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
+    <div class="card"><div class="card-title">Spese per categoria (media/mese)</div>${renderCategoryBars(a.catMonthly,cur)}</div>
+    <div class="card"><div class="card-title">Distribuzione spese</div><div class="chart-wrap"><canvas id="pieChart"></canvas></div></div>
+  `;
+  setTimeout(()=>{ renderBarChart(a,cur); renderPieChart(a,cur); }, 40);
+}
+function renderCategoryBars(catMonthly, cur) {
+  const sorted = Object.entries(catMonthly).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0]?.[1]||1;
+  const colors = {Casa:'#6366f1',Utenze:'#fb923c',Alimentari:'#f59e0b',Trasporti:'#22d3ee',Abbonamenti:'#a855f7',Salute:'#10b981',Shopping:'#f43f5e',Finanza:'#64748b',Viaggi:'#0ea5e9',Contante:'#78716c',Altro:'#475569'};
+  return sorted.map(([cat,amt])=>`
+    <div class="progress-row">
+      <div class="progress-label"><span>${getCatIcon(cat)} ${cat}</span><span style="color:var(--text2)">${formatMoney(amt,cur)}/mese</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(amt/max)*100)}%;background:${colors[cat]||'#6366f1'}"></div></div>
+    </div>`).join('');
+}
+function renderBarChart(a, cur) {
+  const ctx = document.getElementById('barChart'); if (!ctx) return;
+  if (state.charts.bar) state.charts.bar.destroy();
+  const labels = a.monthKeys.slice(-12);
+  state.charts.bar = new Chart(ctx, {type:'bar',data:{labels:labels.map(k=>k.slice(0,7)),datasets:[
+    {label:'Entrate',data:labels.map(k=>a.months[k]?.income||0),backgroundColor:'rgba(16,185,129,0.7)',borderRadius:4},
+    {label:'Uscite',data:labels.map(k=>a.months[k]?.expenses||0),backgroundColor:'rgba(244,63,94,0.7)',borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10},maxRotation:45},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>'€'+v.toLocaleString()},grid:{color:'#334155'}}}}});
+}
+function renderPieChart(a, cur) {
+  const ctx = document.getElementById('pieChart'); if (!ctx) return;
+  if (state.charts.pie) state.charts.pie.destroy();
+  const cats = Object.entries(a.catMonthly).sort((x,y)=>y[1]-x[1]).slice(0,8);
+  const colors = ['#6366f1','#f59e0b','#22d3ee','#a855f7','#10b981','#f43f5e','#64748b','#0ea5e9'];
+  state.charts.pie = new Chart(ctx, {type:'doughnut',data:{labels:cats.map(c=>c[0]),datasets:[{data:cats.map(c=>c[1].toFixed(2)),backgroundColor:colors,borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11},boxWidth:12,padding:7}}}}});
+}
+
+// ==================== TRANSACTIONS ====================
+let txFilter = 'all';
+function setTxFilter(f) { txFilter=f; renderTransactions(); }
+function renderTransactions() {
+  if (!state.transactions.length) return;
+  const search = document.getElementById('txSearch').value.toLowerCase();
+  let filtered = state.transactions.filter(tx => {
+    const ms = !search || tx.merchant_normalized.toLowerCase().includes(search) || tx.description_raw.toLowerCase().includes(search) || tx.category.toLowerCase().includes(search);
+    const mf = txFilter==='all' || (txFilter==='debit'&&tx.direction==='debit') || (txFilter==='credit'&&tx.direction==='credit') || (txFilter==='recurring'&&tx.recurring_flag);
+    return ms && mf;
+  }).slice(0,200);
+  if (!filtered.length) { document.getElementById('txContent').innerHTML='<div style="text-align:center;padding:28px;color:var(--text2)">Nessun risultato</div>'; return; }
+  const byMonth = {};
+  filtered.forEach(tx=>{
+    const mk = tx.date.getFullYear()+'-'+String(tx.date.getMonth()+1).padStart(2,'0');
+    if (!byMonth[mk]) byMonth[mk]=[];
+    byMonth[mk].push(tx);
+  });
+  let html = '';
+  Object.keys(byMonth).sort().reverse().forEach(mk=>{
+    const mTxs = byMonth[mk];
+    const totalIn = mTxs.filter(t=>t.direction==='credit').reduce((s,t)=>s+t.amount,0);
+    const totalOut = mTxs.filter(t=>t.direction==='debit').reduce((s,t)=>s+t.amount,0);
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 2px"><span style="font-size:14px;font-weight:700">${mk}</span><span style="font-size:12px"><span style="color:var(--green)">+${formatMoney(totalIn)}</span> <span style="color:var(--red)">-${formatMoney(totalOut)}</span></span></div>`;
+    html += '<div class="card" style="padding:6px 14px">';
+    mTxs.forEach(tx=>{
+      html += `<div class="tx-item">
+        <div class="tx-icon" style="background:rgba(99,102,241,0.1)">${getCatIcon(tx.category)}</div>
+        <div class="tx-body">
+          <div class="tx-merchant">${tx.merchant_normalized}</div>
+          <div class="tx-meta">${tx.dateStr} · ${tx.category}${tx.recurring_flag?` · <span style="color:var(--accent)">🔄 ${tx.recurring_type}</span>`:''}</div>
+        </div>
+        <div class="tx-amount ${tx.direction}">${tx.direction==='debit'?'-':'+'}${formatMoney(tx.amount,tx.currency)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('txContent').innerHTML = html;
+}
+
+// ==================== RECURRING ====================
+function renderRecurring() {
+  if (!state.analysis || !state.analysis.recurringItems.length) return;
+  const a = state.analysis, cur = state.transactions[0]?.currency||'EUR';
+  const expenses = a.recurringItems.filter(r=>r.direction==='debit').sort((a,b)=>b.avgAmount-a.avgAmount);
+  const incomes  = a.recurringItems.filter(r=>r.direction==='credit').sort((a,b)=>b.avgAmount-a.avgAmount);
+  const totRec = expenses.reduce((s,r)=>s+r.avgAmount,0);
+  let html = `<div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Spese fisse/mese</div><div class="stat-value red">${formatMoney(totRec,cur)}</div><div class="stat-sub">${expenses.length} voci</div></div>
+    <div class="stat-card"><div class="stat-label">Entrate fisse/mese</div><div class="stat-value green">${formatMoney(incomes.reduce((s,r)=>s+r.avgAmount,0),cur)}</div><div class="stat-sub">${incomes.length} fonti</div></div>
+  </div>`;
+  if (incomes.length) {
+    html += '<div class="card"><div class="card-title">💰 Entrate ricorrenti</div>';
+    incomes.forEach(r=>{
+      html += `<div class="tx-item"><div class="tx-icon" style="background:rgba(16,185,129,0.1)">💰</div><div class="tx-body"><div class="tx-merchant">${r.merchant}</div><div class="tx-meta">${r.category} · ${r.occurrences}× rilevato</div></div><div class="tx-amount credit">+${formatMoney(r.avgAmount,cur)}</div></div>`;
+    });
+    html += '</div>';
+  }
+  if (expenses.length) {
+    html += '<div class="card"><div class="card-title">🔄 Spese ricorrenti</div>';
+    expenses.forEach(r=>{
+      const bc = r.type==='fisso'?'badge-green':r.type==='semi-fisso'?'badge-yellow':'badge-blue';
+      html += `<div class="tx-item"><div class="tx-icon" style="background:rgba(99,102,241,0.1)">${getCatIcon(r.category)}</div><div class="tx-body"><div class="tx-merchant">${r.merchant}</div><div class="tx-meta">${r.category} · ${r.occurrences}× · <span class="badge ${bc}">${r.type}</span></div></div><div class="tx-amount debit">-${formatMoney(r.avgAmount,cur)}</div></div>`;
+    });
+    html += '</div>';
+  }
+  document.getElementById('recurringContent').innerHTML = html;
+}
+
+// ==================== ANNUAL TABLE ====================
+function renderAnnual(year) {
+  if (!state.analysis) return;
+  const a = state.analysis, cur = state.transactions[0]?.currency||'EUR';
+  const allYears = [...new Set(state.transactions.map(t=>t.date.getFullYear()))].sort();
+  if (!year) year = state.selectedYear || allYears[allYears.length-1];
+  state.selectedYear = year;
+  const MN = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const MF = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const monthly = MN.map((_,mi)=>{
+    const mk = year+'-'+String(mi+1).padStart(2,'0');
+    const m = a.months[mk]||{income:0,expenses:0,categories:{}};
+    return {income:m.income,expenses:m.expenses,savings:m.income-m.expenses,rate:m.income>0?(m.income-m.expenses)/m.income*100:null,categories:m.categories||{}};
+  });
+  const totI=monthly.reduce((s,m)=>s+m.income,0), totE=monthly.reduce((s,m)=>s+m.expenses,0);
+  const totS=totI-totE, totR=totI>0?totS/totI*100:0;
+  const allCats=[...new Set(monthly.flatMap(m=>Object.keys(m.categories)))].filter(c=>c!=='Trasferimento'&&c!=='Trasferimento Interno').sort();
+  const hasData=monthly.filter(m=>m.income>0||m.expenses>0);
+  const best=monthly.reduce((b,m,i)=>m.savings>b.val?{val:m.savings,idx:i}:b,{val:-Infinity,idx:0});
+  const worst=monthly.reduce((w,m,i)=>m.savings<w.val?{val:m.savings,idx:i}:w,{val:Infinity,idx:0});
+  function fc(val,type){
+    if (!val && val!==0) return '<td class="cd">—</td>';
+    if (val===0) return '<td class="cd">—</td>';
+    if (type==='income') return `<td class="cg">${formatMoney(val,cur)}</td>`;
+    if (type==='expense') return `<td class="cr">${formatMoney(val,cur)}</td>`;
+    if (type==='savings') return `<td class="${val>=0?'cg':'cr'}">${formatMoney(val,cur)}</td>`;
+    if (type==='rate') { if (val===null) return '<td class="cd">—</td>'; return `<td class="${val>=20?'cg':val>=10?'cy':'cr'}">${val.toFixed(1)}%</td>`; }
+    return val>0?`<td class="cd">${formatMoney(val,cur)}</td>`:'<td class="cd">—</td>';
+  }
+  const yearPills = allYears.map(y=>`<div class="year-pill ${y===year?'active':''}" onclick="renderAnnual(${y})">${y}</div>`).join('');
+  const thM = MN.map((_,i)=>`<th style="opacity:${monthly[i].income>0||monthly[i].expenses>0?1:0.35}">${MN[i]}</th>`).join('');
+  const thTot = `<th style="border-left:2px solid var(--border);color:var(--text)">Tot</th>`;
+  const rowI = `<tr><td>💰 Entrate</td>${monthly.map(m=>fc(m.income,'income')).join('')}<td style="border-left:2px solid var(--border);font-weight:700;color:var(--green)">${formatMoney(totI,cur)}</td></tr>`;
+  const rowE = `<tr><td>💸 Uscite</td>${monthly.map(m=>fc(m.expenses,'expense')).join('')}<td style="border-left:2px solid var(--border);font-weight:700;color:var(--red)">${formatMoney(totE,cur)}</td></tr>`;
+  const rowS = `<tr style="font-weight:700"><td>🏦 Risparmio</td>${monthly.map(m=>fc(m.savings,'savings')).join('')}<td style="border-left:2px solid var(--border);font-weight:700;color:${totS>=0?'var(--green)':'var(--red)'}">${formatMoney(totS,cur)}</td></tr>`;
+  const rowR = `<tr><td style="padding-left:18px;color:var(--text2);font-weight:400;font-size:11px">📊 %</td>${monthly.map(m=>fc(m.rate,'rate')).join('')}<td style="border-left:2px solid var(--border);font-weight:700;color:${totR>=20?'var(--green)':totR>=10?'var(--yellow)':'var(--red)'}">${totR.toFixed(1)}%</td></tr>`;
+  const maxA = Math.max(...monthly.map(m=>Math.abs(m.savings)))||1;
+  const rowH = `<tr><td style="font-size:11px;color:var(--text2)">🌡️</td>${monthly.map(m=>{
+    if (!m.income&&!m.expenses) return '<td class="cd">—</td>';
+    const al = 0.1+(Math.abs(m.savings)/maxA)*0.5;
+    const bg = m.savings>=0?`rgba(16,185,129,${al})`:`rgba(244,63,94,${al})`;
+    return `<td><div style="background:${bg};border-radius:3px;padding:2px 0;font-size:10px;font-weight:700;color:${m.savings>=0?'var(--green)':'var(--red)'};text-align:center">${m.savings>=0?'▲':'▼'}</div></td>`;
+  }).join('')}<td style="border-left:2px solid var(--border)"></td></tr>`;
+  const catSec = `<tr class="row-section"><td colspan="${MN.length+2}">Spese per categoria</td></tr>`;
+  const catRows = allCats.map(cat=>{
+    const tot=monthly.reduce((s,m)=>s+(m.categories[cat]||0),0);
+    return `<tr class="row-cat"><td>${getCatIcon(cat)} ${cat}</td>${monthly.map(m=>m.categories[cat]>0?`<td class="cd">${formatMoney(m.categories[cat],cur)}</td>`:'<td class="cd">—</td>').join('')}<td style="border-left:2px solid var(--border);color:var(--text2);font-weight:600">${tot>0?formatMoney(tot,cur):'—'}</td></tr>`;
+  }).join('');
+  const rowTot = `<tr class="row-total"><td>∑ Netto</td>${monthly.map(m=>{
+    const net=m.income-m.expenses; const nc=net>=0?'var(--green)':'var(--red)';
+    return (m.income>0||m.expenses>0)?`<td style="color:${nc};font-weight:700">${formatMoney(net,cur)}</td>`:'<td class="cd">—</td>';
+  }).join('')}<td style="border-left:2px solid var(--border);color:${totS>=0?'var(--green)':'var(--red)'};font-weight:700">${formatMoney(totS,cur)}</td></tr>`;
+
+  const html = `
+    <div class="year-select">${yearPills}</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Entrate annuali</div><div class="stat-value green">${formatMoney(totI,cur)}</div><div class="stat-sub">${hasData.length} mesi con dati</div></div>
+      <div class="stat-card"><div class="stat-label">Uscite annuali</div><div class="stat-value red">${formatMoney(totE,cur)}</div><div class="stat-sub">${allCats.length} categorie</div></div>
+      <div class="stat-card"><div class="stat-label">Risparmio netto</div><div class="stat-value ${totS>=0?'green':'red'}">${formatMoney(totS,cur)}</div><div class="stat-sub">${formatMoney(totS/Math.max(hasData.length,1),cur)}/mese</div></div>
+      <div class="stat-card"><div class="stat-label">Tasso risparmio</div><div class="stat-value ${totR>=20?'green':totR>=10?'yellow':'red'}">${totR.toFixed(1)}%</div><div class="stat-sub">${totR>=20?'🌟 Ottimo':totR>=10?'👍 Buono':'⚠️ Basso'}</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Mese migliore</div><div class="stat-value green" style="font-size:16px">${MF[best.idx]}</div><div class="stat-sub">+${formatMoney(best.val,cur)}</div></div>
+      <div class="stat-card"><div class="stat-label">Mese peggiore</div><div class="stat-value red" style="font-size:16px">${MF[worst.idx]}</div><div class="stat-sub">${formatMoney(worst.val,cur)}</div></div>
+    </div>
+    <div class="scenario-toggle">
+      <div class="scenario-btn ${state.annualView==='table'?'active':''}" onclick="setAnnualView('table')">📋 Tabella</div>
+      <div class="scenario-btn ${state.annualView==='cards'?'active':''}" onclick="setAnnualView('cards')">🗂️ Cards</div>
+    </div>
+    <div id="annualTableView" style="display:${state.annualView==='cards'?'none':'block'}">
+      <div class="annual-wrap">
+        <table class="annual-table">
+          <thead><tr><th style="text-align:left">Voce</th>${thM}${thTot}</tr></thead>
+          <tbody>
+            <tr class="row-section"><td colspan="${MN.length+2}">Riepilogo</td></tr>
+            ${rowI}${rowE}${rowS}${rowR}${rowH}${catSec}${catRows}${rowTot}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="annualCardsView" style="display:${state.annualView==='cards'?'block':'none'}">
+      ${monthly.map((m,i)=>{
+        if (!m.income&&!m.expenses) return '';
+        const topCat=Object.entries(m.categories).sort((a,b)=>b[1]-a[1])[0];
+        const cols=Object.entries(m.categories).sort((a,b)=>b[1]-a[1]).slice(0,4);
+        const tot=cols.reduce((s,[,v])=>s+v,0);
+        const clrs=['#6366f1','#f59e0b','#22d3ee','#f43f5e'];
+        return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:15px;font-weight:700">${MF[i]} ${year}</div><div style="font-size:13px;font-weight:700;color:${m.savings>=0?'var(--green)':'var(--red)'}">${m.savings>=0?'+':''}${formatMoney(m.savings,cur)}</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:2px">Entrate</div><div style="font-size:13px;font-weight:700;color:var(--green)">${formatMoney(m.income,cur)}</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:2px">Uscite</div><div style="font-size:13px;font-weight:700;color:var(--red)">${formatMoney(m.expenses,cur)}</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:2px">Tasso</div><div style="font-size:13px;font-weight:700;color:${m.rate>=20?'var(--green)':m.rate>=10?'var(--yellow)':'var(--red)'}">${m.rate!==null?m.rate.toFixed(1)+'%':'—'}</div></div>
+        </div>
+        ${topCat?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Top: <b style="color:var(--text)">${getCatIcon(topCat[0])} ${topCat[0]}</b> — ${formatMoney(topCat[1],cur)}</div>`:''}
+        ${tot>0?`<div style="display:flex;gap:2px;height:5px;border-radius:4px;overflow:hidden;margin-bottom:5px">${cols.map(([,v],ci)=>`<div style="flex:${v/tot};background:${clrs[ci]};min-width:3px"></div>`).join('')}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${cols.map(([k,v],ci)=>`<span style="font-size:10px;color:${clrs[ci]}">${getCatIcon(k)} ${k}: ${formatMoney(v,cur)}</span>`).join('')}</div>`:''}
+        </div>`;
+      }).filter(Boolean).join('')}
+    </div>
+    <div class="card"><div class="card-title">📈 Andamento mensile ${year}</div><div class="chart-wrap"><canvas id="annualChart"></canvas></div></div>
+  `;
+  document.getElementById('annualContent').innerHTML = html;
+  setTimeout(()=>renderAnnualChart(monthly, year, cur), 40);
+}
+function setAnnualView(v) {
+  state.annualView=v;
+  document.getElementById('annualTableView').style.display=v==='table'?'block':'none';
+  document.getElementById('annualCardsView').style.display=v==='cards'?'block':'none';
+  document.querySelectorAll('#annualContent .scenario-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase().includes(v==='table'?'tabella':'card')));
+}
+function renderAnnualChart(monthly, year, cur) {
+  const ctx=document.getElementById('annualChart'); if (!ctx) return;
+  if (state.charts.annual) state.charts.annual.destroy();
+  const MN=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  state.charts.annual = new Chart(ctx,{type:'bar',data:{labels:MN,datasets:[
+    {label:'Entrate',data:monthly.map(m=>m.income.toFixed(2)),backgroundColor:'rgba(16,185,129,0.7)',borderRadius:4,order:2},
+    {label:'Uscite',data:monthly.map(m=>m.expenses.toFixed(2)),backgroundColor:'rgba(244,63,94,0.7)',borderRadius:4,order:2},
+    {label:'Netto',data:monthly.map(m=>m.savings.toFixed(2)),type:'line',borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.12)',fill:true,tension:0.4,pointBackgroundColor:'#6366f1',pointRadius:3,order:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>'€'+Number(v).toLocaleString()},grid:{color:'#334155'}}}}});
+}
+// ==================== PROJECTION ====================
+function renderProjection() {
+  if (!state.analysis) return;
+  const a=state.analysis, cur=state.transactions[0]?.currency||'EUR';
+  const sc={base:{im:1,em:1,label:'Base',desc:'Media attuale'},cautious:{im:0.95,em:1.05,label:'Cauto',desc:'-5% entrate, +5% uscite'},stress:{im:0.85,em:1.15,label:'Stress',desc:'-15% entrate, +15% uscite'}}[state.scenario];
+  const mI=a.avgIncome*sc.im, mE=a.avgExpenses*sc.em, mS=mI-mE;
+  const sr=mI>0?(mS/mI)*100:0;
+  function projBlock(n){
+    const tI=mI*n,tE=mE*n,tS=mS*n; const sr2=tI>0?(tS/tI*100).toFixed(1):'0';
+    return `<div class="proj-row"><span class="proj-label">Entrate previste</span><span style="color:var(--green);font-weight:500">${formatMoney(tI,cur)}</span></div>
+    <div class="proj-row"><span class="proj-label">Uscite previste</span><span style="color:var(--red);font-weight:500">${formatMoney(tE,cur)}</span></div>
+    <div class="proj-row total"><span>Risparmio netto</span><span style="color:${tS>=0?'var(--green)':'var(--red)'};font-weight:700">${formatMoney(tS,cur)}</span></div>
+    <div class="proj-row"><span class="proj-label">Tasso risparmio</span><span>${sr2}%</span></div>`;
+  }
+  const pressure=[];
+  const cs=Object.entries(a.catMonthly).sort((x,y)=>y[1]-x[1]);
+  if (cs[0]) pressure.push(`${cs[0][0]} è la tua spesa maggiore (${formatMoney(cs[0][1],cur)}/mese)`);
+  if (a.savingsRate<10) pressure.push('Tasso di risparmio critico — qualsiasi spesa imprevista crea deficit');
+  if (a.anomalies.length>0) pressure.push(`${a.anomalies.length} anomalie rilevate nell'ultimo mese`);
+  if (mS<0) pressure.push('⚠️ Con questo andamento prevedi un deficit');
+  document.getElementById('projectionContent').innerHTML = `
+    <div class="scenario-toggle">
+      <div class="scenario-btn ${state.scenario==='base'?'active':''}" onclick="setScenario('base')">Base</div>
+      <div class="scenario-btn ${state.scenario==='cautious'?'active':''}" onclick="setScenario('cautious')">Cauto</div>
+      <div class="scenario-btn ${state.scenario==='stress'?'active':''}" onclick="setScenario('stress')">Stress</div>
+    </div>
+    <div class="alert alert-blue"><div style="font-size:18px">ℹ️</div><div><b>${sc.label}</b>: ${sc.desc}. Netto mensile: <b style="color:${mS>=0?'var(--green)':'var(--red)'}">${formatMoney(mS,cur)}</b></div></div>
+    <div class="card"><div class="card-title">Prossimi 3 mesi</div>${projBlock(3)}</div>
+    <div class="card"><div class="card-title">Prossimi 6 mesi</div>${projBlock(6)}</div>
+    <div class="card"><div class="card-title">Prossimi 12 mesi</div>${projBlock(12)}</div>
+    ${pressure.length?`<div class="card"><div class="card-title">⚠️ Punti critici</div>${pressure.map(p=>`<div style="font-size:13px;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border)">${p}</div>`).join('')}</div>`:''}
+    <div class="card"><div class="card-title">Proiezione risparmio cumulativo (6 mesi)</div><div class="chart-wrap"><canvas id="projChart"></canvas></div></div>
+  `;
+  setTimeout(()=>{
+    const ctx=document.getElementById('projChart'); if(!ctx) return;
+    if(state.charts.proj) state.charts.proj.destroy();
+    let cum=0;
+    const data=['Mese 1','Mese 2','Mese 3','Mese 4','Mese 5','Mese 6'].map(()=>{cum+=mS;return cum.toFixed(2);});
+    state.charts.proj=new Chart(ctx,{type:'line',data:{labels:['M1','M2','M3','M4','M5','M6'],datasets:[{label:'Risparmio cumulativo',data,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#6366f1',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>'€'+Number(v).toLocaleString()},grid:{color:'#334155'}}}}});
+  },40);
+}
+function setScenario(s){state.scenario=s;renderProjection();}
+
+// ==================== INSIGHTS ====================
+function renderInsights() {
+  if (!state.analysis) return;
+  const a=state.analysis, cur=state.transactions[0]?.currency||'EUR';
+  const recs=[];
+  if (a.savingsRate<20) recs.push({icon:'💰',title:'Aumenta il tasso di risparmio',body:`Attuale: ${a.savingsRate.toFixed(1)}%. Obiettivo: 20%+. Ti mancano ${formatMoney((a.avgIncome*0.2)-Math.max(0,a.avgSavings),cur)}/mese.`,impact:`+${formatMoney((a.avgIncome*0.2)-Math.max(0,a.avgSavings),cur)}/mese al risparmio`});
+  const subs=a.recurringItems.filter(r=>r.category==='Abbonamenti');
+  if (subs.length>2) recs.push({icon:'📺',title:`${subs.length} abbonamenti attivi`,body:`Totale: ${formatMoney(subs.reduce((s,r)=>s+r.avgAmount,0),cur)}/mese. Verifica quali usi davvero.`,impact:`Risparmio potenziale: ${formatMoney(subs.reduce((s,r)=>s+r.avgAmount,0)*0.3,cur)}/mese`});
+  const food=a.catMonthly['Alimentari'];
+  if (food&&food>a.avgIncome*0.25) recs.push({icon:'🍽️',title:'Spese alimentari elevate',body:`${formatMoney(food,cur)}/mese (${((food/a.avgIncome)*100).toFixed(0)}% del reddito). Pianifica i pasti per ridurre ristoranti e delivery.`,impact:`-20% = risparmi ${formatMoney(food*0.2,cur)}/mese`});
+  const cash=a.catMonthly['Contante'];
+  if (cash&&cash>200) recs.push({icon:'💵',title:'Contante non tracciato',body:`${formatMoney(cash,cur)}/mese in prelievi. Il contante nasconde le spese reali.`,impact:'Migliora il controllo finanziario'});
+  if (a.avgSavings>0) recs.push({icon:'🏦',title:'Automatizza il risparmio',body:`Hai ${formatMoney(a.avgSavings,cur)}/mese di surplus. Imposta un bonifico automatico il giorno dello stipendio verso un conto risparmio.`,impact:`${formatMoney(a.avgSavings*12,cur)} in 12 mesi`});
+  let html='';
+  if (a.anomalies.length) {
+    html+=`<div style="font-size:16px;font-weight:700;margin-bottom:10px">⚠️ Anomalie rilevate</div>`;
+    a.anomalies.forEach(an=>{html+=`<div class="anomaly-item"><h4>${getCatIcon(an.cat)} ${an.cat} — ${an.ratio.toFixed(1)}× sopra la media</h4><p>Questo mese: <b>${formatMoney(an.amount,cur)}</b> vs media ${formatMoney(an.avg,cur)}/mese</p></div>`;});
+  }
+  html+=`<div style="font-size:16px;font-weight:700;margin-bottom:10px;margin-top:${a.anomalies.length?'16px':'0'}">💡 Consigli personalizzati</div>`;
+  html+=`<div class="card">${recs.length?recs.map(r=>`<div class="rec-item"><div class="rec-icon">${r.icon}</div><div class="rec-body"><h4>${r.title}</h4><p>${r.body}</p><div class="rec-impact">${r.impact}</div></div></div>`).join(''):'<div style="color:var(--text2);font-size:13px;text-align:center;padding:18px">Nessun problema critico rilevato 🎉</div>'}</div>`;
+  const topM=Object.entries(a.merchantTotals).sort((x,y)=>y[1]-x[1]).slice(0,6);
+  const mc=a.monthKeys.length||1;
+  html+=`<div style="font-size:16px;font-weight:700;margin-bottom:10px;margin-top:16px">🏆 Top merchant</div><div class="card">`;
+  topM.forEach(([m,v],i)=>{html+=`<div class="tx-item"><div style="width:24px;text-align:center;font-size:13px;font-weight:700;color:var(--text2)">${i+1}</div><div class="tx-body"><div class="tx-merchant">${m}</div><div class="tx-meta">${formatMoney(v/mc,cur)}/mese medio</div></div><div style="font-size:14px;font-weight:600;color:var(--red)">-${formatMoney(v,cur)}</div></div>`;});
+  html+='</div>';
+  // Emergency fund
+  const efTarget=a.avgExpenses*6;
+  const efMonths=a.avgSavings>0?Math.ceil(efTarget/a.avgSavings):999;
+  html+=`<div style="font-size:16px;font-weight:700;margin-bottom:10px;margin-top:16px">🆘 Fondo emergenza</div><div class="card"><div style="font-size:13px;color:var(--text2);line-height:2"><div>🎯 Target: <b style="color:var(--text)">${formatMoney(efTarget,cur)}</b> (6 mesi spese)</div><div>💾 Surplus mensile: <b style="color:${a.avgSavings>0?'var(--green)':'var(--red)'}">${formatMoney(a.avgSavings,cur)}</b></div><div>⏱️ Tempo stimato: <b style="color:var(--accent)">${efMonths<100?efMonths+' mesi':'Non raggiungibile con andamento attuale'}</b></div></div></div>`;
+  document.getElementById('insightsContent').innerHTML=html;
+}
+
+// ==================== SETTINGS ====================
+function renderSettings() {
+  const hasKey = !!state.apiKey;
+  document.getElementById('settingsContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">🤖 Intelligenza Artificiale</div>
+      <div class="settings-row">
+        <div><div class="settings-label">OpenAI API Key</div><div class="settings-sub">${hasKey?'✅ Configurata — assistente AI attivo':'⚠️ Non configurata — aggiungi per attivare l\'AI'}</div></div>
+      </div>
+      <div class="input-group" style="margin-top:8px">
+        <input type="password" id="apiKeyInput" class="input-field" placeholder="sk-..." value="${state.apiKey||''}">
+      </div>
+      <button class="btn btn-primary" style="margin-top:6px" onclick="saveApiKey()">Salva API Key</button>
+      <div style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.6">
+        📌 Ottieni la tua API key su <b>platform.openai.com</b> → API Keys<br>
+        🔒 La chiave viene salvata cifrata con il tuo PIN
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔐 Sicurezza</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Cambia PIN</div><div class="settings-sub">Modifica il PIN di accesso</div></div>
+        <button class="btn btn-ghost" onclick="showChangePIN()" style="padding:7px 13px;font-size:13px">Cambia</button>
+      </div>
+      <div id="changePinSection" style="display:none;margin-top:12px">
+        <div class="input-group"><div class="input-label">Nuovo PIN (4 cifre)</div><input type="password" inputmode="numeric" maxlength="4" id="newPin1" class="input-field" placeholder="****" pattern="[0-9]*"></div>
+        <div class="input-group"><div class="input-label">Conferma nuovo PIN</div><input type="password" inputmode="numeric" maxlength="4" id="newPin2" class="input-field" placeholder="****" pattern="[0-9]*"></div>
+        <div id="changePinError" style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:16px"></div>
+        <button class="btn btn-primary" onclick="changePin()">Aggiorna PIN</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📦 GitHub — Come usarlo in privato</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.9">
+        <div>1️⃣ Vai su <b style="color:var(--text)">github.com</b> → New repository</div>
+        <div>2️⃣ Scegli <b style="color:var(--accent)">Private</b> come visibilità</div>
+        <div>3️⃣ Carica <b style="color:var(--text)">finance-analyst.html</b> rinominato <b>index.html</b></div>
+        <div>4️⃣ Settings → Pages → Branch: main → Save</div>
+        <div>5️⃣ GitHub ti dà un link tipo <b style="color:var(--text)">username.github.io/repo</b></div>
+        <div style="margin-top:8px">⚠️ <b>GitHub Pages non supporta l'autenticazione</b> per repo privati nel piano gratuito — usa il PIN dell'app come protezione (già attivo).</div>
+        <div style="margin-top:6px">💡 <b>Alternativa gratuita:</b> Netlify o Vercel con password protection.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Dati</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Transazioni caricate</div><div class="settings-sub">${state.transactions.length} movimenti · ${state.files.length} file</div></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Periodo coperto</div><div class="settings-sub">${state.analysis?`${state.analysis.monthKeys[0]} → ${state.analysis.monthKeys[state.analysis.monthKeys.length-1]}`:'Nessun dato'}</div></div>
+      </div>
+      <button class="btn btn-danger btn-full" style="margin-top:12px" onclick="clearAllData()">🗑️ Cancella tutti i dati</button>
+    </div>
+  `;
+}
+function saveApiKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  state.apiKey = k || null;
+  saveToStorage();
+  showToast(k ? '✅ API Key salvata' : '🗑️ API Key rimossa');
+  renderSettings();
+}
+function showChangePIN() {
+  const s = document.getElementById('changePinSection');
+  s.style.display = s.style.display==='none'?'block':'none';
+}
+async function changePin() {
+  const p1=document.getElementById('newPin1').value.trim();
+  const p2=document.getElementById('newPin2').value.trim();
+  const err=document.getElementById('changePinError');
+  err.textContent='';
+  if (!/^\d{4}$/.test(p1)) { err.textContent='Il PIN deve essere 4 cifre numeriche.'; return; }
+  if (p1!==p2) { err.textContent='I PIN non coincidono.'; return; }
+  // Re-encrypt with new PIN
+  const oldPin=state.pin;
+  state.pin=p1;
+  // Generate new salt
+  const salt=crypto.getRandomValues(new Uint8Array(16)); saveSalt(salt);
+  await saveToStorage();
+  showChangePIN();
+  showToast('✅ PIN aggiornato');
+}
+
+// ==================== FILE LIST ====================
+function renderFileList() {
+  const el=document.getElementById('fileList');
+  if (!state.files.length) { el.innerHTML=''; return; }
+  el.innerHTML = state.files.map((f,i)=>`
+    <div class="file-chip">
+      <span style="font-size:18px">📄</span>
+      <div style="flex:1;min-width:0"><div class="file-chip-name">${f.name}</div><div class="file-chip-meta">${f.count} movimenti</div></div>
+      <span style="color:var(--text2);font-size:18px;cursor:pointer;padding:2px" onclick="removeFile(${i})">✕</span>
+    </div>`).join('');
+  if (state.files.length>0) el.innerHTML+=`<button class="btn btn-primary btn-full" style="margin-bottom:12px" onclick="goToPage('overview')">📊 Vedi analisi →</button>`;
+}
+function removeFile(idx) {
+  const fname=state.files[idx].name;
+  state.files.splice(idx,1);
+  state.transactions=state.transactions.filter(t=>t.source!==fname);
+  if (state.transactions.length>0) { detectRecurring(); runAnalysis(); renderAll(); }
+  else {
+    state.analysis=null;
+    document.getElementById('headerSub').textContent='Carica i tuoi estratti conto';
+    ['overviewContent','recurringContent','projectionContent','insightsContent','annualContent'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><h3>Nessun dato</h3><p>Carica gli estratti per iniziare.</p></div>';
+    });
+  }
+  saveToStorage();
+  renderFileList();
+  showToast('🗑️ Rimosso ' + fname);
+}
+
+// ==================== BACKUP / EXPORT / IMPORT ====================
+function openBackupSheet() {
+  const size=(() => { try { const r=localStorage.getItem(STORAGE_KEY); return r?new Blob([r]).size:0; } catch(e){return 0;} })();
+  const sizeStr=size>1024*1024?(size/1024/1024).toFixed(2)+' MB':size>1024?(size/1024).toFixed(1)+' KB':size+' B';
+  const savedAt=(() => { try { const r=localStorage.getItem(STORAGE_KEY); if(!r) return 'Mai'; const p=JSON.parse(atob(r.slice(0,4))+'=='); return 'Attivo'; } catch(e){ return localStorage.getItem(STORAGE_KEY)?'Attivo':'Mai'; } })();
+  document.getElementById('backupStorageInfo').innerHTML=
+    `<div>📱 <b>Salvataggio locale:</b> <span style="color:var(--green)">Attivo ✓ (cifrato AES-256)</span></div>`+
+    `<div>📦 <b>Dimensione:</b> ${sizeStr}</div>`+
+    `<div>💳 <b>Transazioni:</b> ${state.transactions.length}</div>`+
+    `<div>📂 <b>File caricati:</b> ${state.files.length}</div>`;
+  document.getElementById('backupOverlay').style.display='block';
+  document.getElementById('backupSheet').style.display='block';
+}
+function closeBackupSheet() {
+  document.getElementById('backupOverlay').style.display='none';
+  document.getElementById('backupSheet').style.display='none';
+}
+function exportJSON() {
+  if (!state.transactions.length) { showToast('⚠️ Nessun dato da esportare'); return; }
+  const payload={version:2,exportedAt:new Date().toISOString(),appName:'Finance AI',files:state.files,transactions:state.transactions.map(tx=>({...tx,date:tx.date instanceof Date?tx.date.toISOString():tx.date}))};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`finance-data-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  closeBackupSheet(); showToast(`📦 Esportati ${state.transactions.length} movimenti`);
+}
+function exportCSV() {
+  if (!state.transactions.length) { showToast('⚠️ Nessun dato'); return; }
+  const headers=['data','descrizione','merchant','importo','valuta','tipo','categoria','sottocategoria','ricorrente','fonte'];
+  const rows=state.transactions.map(tx=>[tx.dateStr,`"${(tx.description_raw||'').replace(/"/g,'""')}"`,`"${(tx.merchant_normalized||'').replace(/"/g,'""')}"`,tx.amount,tx.currency,tx.direction,tx.category,tx.subcategory,tx.recurring_flag?'si':'no',`"${(tx.source||'').replace(/"/g,'""')}"`]);
+  const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`finance-movimenti-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  closeBackupSheet(); showToast(`📊 CSV esportato`);
+}
+function importJSON(input) {
+  const file=input.files[0]; if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const p=JSON.parse(e.target.result);
+      if (!p.transactions||!Array.isArray(p.transactions)) { showToast('❌ File backup non valido'); return; }
+      const restored=p.transactions.map(tx=>({...tx,date:new Date(tx.date)}));
+      const existing=new Set(state.transactions.map(t=>t.dateStr+'_'+t.amount+'_'+t.description_raw));
+      const added=restored.filter(t=>!existing.has(t.dateStr+'_'+t.amount+'_'+t.description_raw));
+      state.transactions.push(...added);
+      state.transactions.sort((a,b)=>b.date-a.date);
+      (p.files||[]).forEach(f=>{ if (!state.files.find(x=>x.name===f.name)) state.files.push(f); });
+      detectRecurring(); runAnalysis(); renderAll(); renderFileList();
+      document.getElementById('uploadInstructions').style.display='none';
+      saveToStorage(); closeBackupSheet();
+      showToast(`✅ Importati ${added.length} movimenti`);
+    } catch(err) { showToast('❌ Impossibile leggere il file'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+function clearAllData() {
+  if (!confirm('Sei sicuro? Tutti i dati verranno eliminati. Esporta un backup prima se necessario.')) return;
+  state.transactions=[]; state.files=[]; state.analysis=null; state.selectedYear=null;
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SALT_KEY); } catch(e){}
+  // Reset
+  ['overviewContent','recurringContent','projectionContent','insightsContent','annualContent'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><h3>Nessun dato</h3></div>';
+  });
+  document.getElementById('txContent').innerHTML='<div class="empty"><div class="empty-icon">💳</div><h3>Nessuna transazione</h3></div>';
+  document.getElementById('fileList').innerHTML='';
+  document.getElementById('uploadInstructions').style.display='';
+  document.getElementById('headerSub').textContent='Carica i tuoi estratti conto';
+  Object.values(state.charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  state.charts={};
+  closeBackupSheet(); renderSettings();
+  showToast('🗑️ Dati eliminati');
+  // Also need to re-setup since salt is gone
+  document.getElementById('setupScreen').style.display='block';
+  lockApp();
+}
+
+// ==================== AI CHAT ====================
+function openAIChat() {
+  const overlay=document.getElementById('aiOverlay');
+  overlay.style.display='flex';
+  // Init quick questions
+  renderQuickQuestions();
+  // Welcome message if empty
+  const msgs=document.getElementById('chatMessages');
+  if (!msgs.children.length) {
+    const hasData=state.transactions.length>0;
+    const hasKey=!!state.apiKey;
+    let welcome='Ciao! Sono il tuo assistente finanziario AI. ';
+    if (!hasKey) welcome+='⚠️ <b>API Key OpenAI non configurata</b> — vai in ⚙️ Config per aggiungerla.<br><br>';
+    if (!hasData) welcome+='Non hai ancora caricato dati. Carica i tuoi estratti conto e poi torna qui per analizzarli.';
+    else welcome+=`Ho accesso a <b>${state.transactions.length} movimenti</b> su <b>${state.analysis?.monthKeys?.length||0} mesi</b>. Chiedimi qualcosa!`;
+    addChatMessage('ai', welcome);
+  }
+}
+function closeAIChat() {
+  document.getElementById('aiOverlay').style.display='none';
+}
+function renderQuickQuestions() {
+  const qs=[
+    'Quanto ho speso questo mese?',
+    'Quali sono i miei abbonamenti?',
+    'Qual è il mio tasso di risparmio?',
+    'Dove spreco più soldi?',
+    'Proiettami i prossimi 3 mesi',
+    'Analizza le mie spese alimentari',
+  ];
+  document.getElementById('quickQuestions').innerHTML=qs.map(q=>`<button class="quick-q" onclick="askQuestion('${q}')">${q}</button>`).join('');
+}
+function askQuestion(q) {
+  document.getElementById('chatInput').value=q;
+  sendChatMessage();
+}
+function chatKeydown(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+}
+function addChatMessage(role, text) {
+  const msgs=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='chat-msg '+role;
+  div.innerHTML=text;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+function buildFinancialContext() {
+  if (!state.analysis) return 'Nessun dato finanziario disponibile ancora.';
+  const a=state.analysis, cur=state.transactions[0]?.currency||'EUR';
+  const cs=Object.entries(a.catMonthly).sort((x,y)=>y[1]-x[1]);
+  const topMerchants=Object.entries(a.merchantTotals).sort((x,y)=>y[1]-x[1]).slice(0,5);
+  const lastMonth=a.monthKeys[a.monthKeys.length-1];
+  const lastData=a.months[lastMonth]||{};
+  return `DATI FINANZIARI DELL'UTENTE (${new Date().toLocaleDateString('it-IT')}):
+- Periodo coperto: ${a.monthKeys[0]} → ${a.monthKeys[a.monthKeys.length-1]} (${a.monthKeys.length} mesi)
+- Totale transazioni: ${a.txCount}
+- Entrate medie/mese: ${formatMoney(a.avgIncome,cur)}
+- Spese medie/mese: ${formatMoney(a.avgExpenses,cur)}
+- Risparmio medio/mese: ${formatMoney(a.avgSavings,cur)}
+- Tasso risparmio: ${a.savingsRate.toFixed(1)}%
+- Ultimo mese (${lastMonth}): entrate ${formatMoney(lastData.income||0,cur)}, spese ${formatMoney(lastData.expenses||0,cur)}
+- Spese per categoria (media/mese): ${cs.map(([k,v])=>`${k}: ${formatMoney(v,cur)}`).join(', ')}
+- Top merchant per spesa totale: ${topMerchants.map(([m,v])=>`${m} (${formatMoney(v,cur)})`).join(', ')}
+- Voci ricorrenti rilevate: ${a.recurringItems.length} (${a.recurringItems.filter(r=>r.direction==='debit').length} spese, ${a.recurringItems.filter(r=>r.direction==='credit').length} entrate)
+- Anomalie ultimo mese: ${a.anomalies.length}${a.anomalies.length>0?' ('+a.anomalies.map(an=>an.cat+' '+an.ratio.toFixed(1)+'×').join(', ')+')':''}`;
+}
+async function sendChatMessage() {
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if (!text) return;
+  if (!state.apiKey) { addChatMessage('ai','⚠️ <b>API Key non configurata.</b> Vai in ⚙️ Config e inserisci la tua chiave OpenAI per usare l\'assistente AI.'); input.value=''; return; }
+  input.value='';
+  const sendBtn=document.getElementById('chatSendBtn');
+  sendBtn.disabled=true;
+  addChatMessage('user', text);
+  const thinkingMsg=addChatMessage('ai thinking','🤔 Sto analizzando i tuoi dati…');
+  document.getElementById('aiStatus').textContent='Elaborazione…';
+  const context=buildFinancialContext();
+  const systemPrompt=`Sei un assistente finanziario personale esperto. Parli sempre in italiano. 
+Analizza i dati finanziari dell'utente e dai risposte precise, pratiche e oneste.
+Non essere generico: usa i numeri reali dai dati forniti.
+Sii diretto e conciso. Usa emoji per rendere le risposte più leggibili.
+Se noti problemi, dillo chiaramente. Se qualcosa va bene, confermalo.
+
+${context}`;
+  try {
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.apiKey},
+      body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'system',content:systemPrompt},{role:'user',content:text}],max_tokens:600,temperature:0.7})
+    });
+    if (!res.ok) {
+      const err=await res.json();
+      throw new Error(err.error?.message||'Errore API');
+    }
+    const data=await res.json();
+    const reply=data.choices[0].message.content;
+    thinkingMsg.classList.remove('thinking');
+    thinkingMsg.innerHTML=reply.replace(/\n/g,'<br>');
+  } catch(e) {
+    thinkingMsg.classList.remove('thinking');
+    thinkingMsg.innerHTML=`❌ <b>Errore:</b> ${e.message}<br><small style="color:var(--text2)">Verifica che la tua API Key sia corretta in ⚙️ Config.</small>`;
+  }
+  sendBtn.disabled=false;
+  document.getElementById('aiStatus').textContent='Pronto';
+  document.getElementById('chatMessages').scrollTop=9999;
+}
+
+// ==================== SHAKE ANIMATION ====================
+const style=document.createElement('style');
+style.textContent='@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}';
+document.head.appendChild(style);
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
